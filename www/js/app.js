@@ -240,9 +240,9 @@ var core;
             }
             return field;
         };
-        World.MAX_X = 3;
+        World.MAX_X = 4;
         World.MIN_X = 0;
-        World.MAX_Y = 3;
+        World.MAX_Y = 4;
         World.MIN_Y = 0;
         return World;
     }());
@@ -357,10 +357,8 @@ var dice = utils.dice;
 var appVm = new Vue({
     el: '#app',
     data: {
-        message1: '',
-        message2: 'mbAppの世界にようこそ!',
-        message3: 'メンバを4人追加してチームを作ってください!',
-        message4: '',
+        topMessage: '',
+        mainMessages: [],
         txt: '',
         users: models.Users.find(),
         direction: {
@@ -374,17 +372,17 @@ var appVm = new Vue({
     methods: {
         add: function () {
             if (this.txt.trim() == '') {
-                this.displayMessage('名前を入力してください!', 2);
+                this.addMessage('名前を入力してください!');
             }
             else if (jQuery.inArray(this.txt, this) < 0) {
                 var user = new entities.User(this.txt);
                 models.Users.add(user);
                 this.users = models.Users.find();
-                this.displayMessage(this.txt + "\u3092\u8FFD\u52A0\u3057\u307E\u3057\u305F!", 2);
+                this.addMessage(this.txt + "\u3092\u8FFD\u52A0\u3057\u307E\u3057\u305F!");
                 this.txt = '';
             }
             else {
-                this.displayMessage('その人は追加済みです!', 2);
+                this.addMessage('その人は追加済みです!');
             }
         },
         removeUser: function (userName) {
@@ -393,17 +391,17 @@ var appVm = new Vue({
                 if (userName === user.name) {
                     models.Users.delete(userName);
                     this.users = models.Users.find();
-                    this.displayMessage(userName + "\u3092\u9664\u540D\u3057\u307E\u3057\u305F!", 2);
+                    this.addMessage(userName + "\u3092\u9664\u540D\u3057\u307E\u3057\u305F!");
                 }
             }
         },
         dissolution: function () {
             models.Users.clear();
             this.users = models.Users.find();
-            this.displayMessage('チームを解散した', 2);
+            this.addMessage('チームを解散した');
         },
         rest: function () {
-            this.displayMessage('休憩中...', 2);
+            this.addMessage('休憩中...');
             this.users.forEach(function (x) {
                 if (0 < x.food.current) {
                     x.life.add(dice());
@@ -416,15 +414,15 @@ var appVm = new Vue({
             var field = this.world.fields[this.position.y][this.position.x].field;
             switch (field) {
                 case Field.GOAL:
-                    this.displayUserMessage('ついに宝を見つけたぞー!!');
-                    this.displayMessage('＊ おめでとう ＊', 3);
-                    this.displayMessage('こうして一行は解散した...', 4);
+                    this.addUserMessage('ついに宝を見つけたぞー!!');
+                    this.addMessage('＊ おめでとう ＊');
+                    this.addMessage('こうして一行は解散した...');
                     models.Users.clear();
                     this.users = models.Users.find();
                     this.world.make();
                     break;
                 default:
-                    this.displayMessage('ここに宝はないようだ.');
+                    this.addMessage('ここに宝はないようだ.');
                     break;
             }
             this.after();
@@ -433,28 +431,37 @@ var appVm = new Vue({
             var field = this.world.getForwardField(this.position, this.direction.value);
             switch (field) {
                 case Field.FLAT:
-                    this.displayMessage('空を切った.');
+                    this.addMessage('空を切った.');
                     break;
                 case Field.BLOCK:
                     var forwardPosition = this.position.getForward(this.direction.value);
-                    this.displayMessage('岩を破壊した.');
-                    this.world.fields[forwardPosition.y][forwardPosition.x].field = Field.FLAT;
-                    this.world.fields[forwardPosition.y][forwardPosition.x].object = null;
+                    var target = this.world.fields[forwardPosition.y][forwardPosition.x].object;
+                    var addMessage = this.addMessage;
+                    this.users.forEach(function (x) {
+                        var damage = dice();
+                        target.life.sub(damage);
+                        addMessage(x.name + "\u306F" + target.name + "\u3092\u653B\u6483\u3057 " + damage + " \u306E\u640D\u50B7\u3092\u4E0E\u3048\u305F.");
+                    });
+                    if (target.life.current < 1) {
+                        this.addMessage('岩を破壊した.');
+                        this.world.fields[forwardPosition.y][forwardPosition.x].field = Field.FLAT;
+                        this.world.fields[forwardPosition.y][forwardPosition.x].object = null;
+                    }
                     this.afterAction();
                     break;
                 case Field.WALL:
-                    this.displayMessage('壁を蹴った.');
+                    this.addMessage('壁を蹴った.');
                     break;
             }
             this.afterAction();
             this.after();
         },
         useKey: function () {
-            this.displayMessage('鍵を持っていない.');
+            this.addMessage('鍵を持っていない.');
             this.after();
         },
         watch: function () {
-            this.displayMessage('時計を持っていない.');
+            this.addMessage('時計を持っていない.');
             this.after();
         },
         compass: function () {
@@ -465,18 +472,19 @@ var appVm = new Vue({
             var field = this.world.getForwardField(this.position, this.direction.value);
             switch (field) {
                 case Field.WALL:
-                    this.displayMessage('壁にぶつかった!');
+                    this.addMessage('壁にぶつかった!');
                     this.users.forEach(function (x) {
                         x.life.sub(dice());
                     });
-                    this.displayMessage('', 3);
                     break;
                 case Field.BLOCK:
-                    this.displayMessage('目の前に岩がある.');
+                    var forwardPosition = this.position.getForward(this.direction.value);
+                    var target = this.world.fields[forwardPosition.y][forwardPosition.x].object;
+                    this.addMessage("\u76EE\u306E\u524D\u306B\u5CA9\u304C\u3042\u308B. (" + target.life.current + " / " + target.life.max + ")");
                     break;
                 case Field.FLAT:
                 case Field.GOAL:
-                    this.displayMessage('前へ進んだ.');
+                    this.addMessage('前へ進んだ.');
                     this.position.moveForward(this.direction.value);
                     this.randomEvent();
                     this.afterAction();
@@ -542,11 +550,11 @@ var appVm = new Vue({
             this.after();
         },
         moveLeft: function () {
-            this.displayMessage('左へは動けない.', 2);
+            this.addMessage('左へは動けない.');
             this.after();
         },
         moveRight: function () {
-            this.displayMessage('右へは動けない.', 2);
+            this.addMessage('右へは動けない.');
             this.after();
         },
         afterAction: function () {
@@ -554,7 +562,7 @@ var appVm = new Vue({
                 x.flow();
                 if (x.life.current < 1) {
                     models.Users.delete(x.name);
-                    this.displayMessage(x.name + "\u306F\u529B\u5C3D\u304D\u305F...", 3);
+                    this.addMessage(x.name + "\u306F\u529B\u5C3D\u304D\u305F...");
                 }
             });
             models.Users.save(this.users);
@@ -569,54 +577,42 @@ var appVm = new Vue({
         randomEvent: function () {
             switch (dice()) {
                 case 1:
-                    this.displayUserMessage('いい天気だ.', 3);
+                    this.addUserMessage('いい天気だ.');
                     break;
                 case 2:
-                    this.displayUserMessage('何かが起こりそうな気がする...', 3);
+                    this.addUserMessage('何かが起こりそうな気がする...');
                     break;
                 case 3:
-                    this.displayUserMessage('油断するなよ.', 3);
+                    this.addUserMessage('油断するなよ.');
                     break;
                 case 4:
-                    this.displayMessage('食糧を拾った!', 3);
+                    this.addMessage('食糧を拾った!');
                     this.users.forEach(function (x) {
                         x.food.add(core.Event.getFood());
                     });
                     break;
                 case 5:
-                    this.displayMessage('トラップだ!', 3);
+                    this.addMessage('トラップだ!');
                     this.users.forEach(function (x) {
                         x.life.sub(core.Event.getTrap());
                     });
-                    this.displayMessage('ダメージを受けた...', 4);
+                    this.addMessage('ダメージを受けた...');
                     break;
                 case 6:
-                    this.displayMessage('...', 3);
+                    this.addUserMessage('...');
                     break;
             }
         },
-        displayMessage: function (message, index) {
-            if (index === void 0) { index = 2; }
-            this.message1 = "\u4F4D\u7F6E: (" + this.position.x + "," + this.position.y + ")";
-            switch (index) {
-                case 2:
-                    this.message2 = message;
-                    this.message3 = '';
-                    this.message4 = '';
-                    break;
-                case 3:
-                    this.message3 = message;
-                    this.message4 = '';
-                    break;
-                case 4:
-                    this.message4 = message;
-                    break;
+        addMessage: function (message) {
+            this.topMessage = "\u4F4D\u7F6E: (" + this.position.x + "," + this.position.y + ")";
+            if (4 < this.mainMessages.length) {
+                this.mainMessages.shift();
             }
+            this.mainMessages.push({ text: message });
         },
-        displayUserMessage: function (message, index) {
-            if (index === void 0) { index = 2; }
+        addUserMessage: function (message) {
             var userIndex = random(this.users.length) - 1;
-            this.displayMessage(this.users[userIndex].name + "\uFF1A" + message, index);
+            this.addMessage(this.users[userIndex].name + "\uFF1A" + message);
         },
         getDirectionDisplay: function () {
             var value = '';
@@ -638,6 +634,8 @@ var appVm = new Vue({
         },
     },
     created: function () {
+        this.addMessage('mbAppの世界にようこそ!');
+        this.addMessage('メンバを4人追加してチームを作ってください!');
         this.direction.enable = 0 < this.users.length;
         this.world.make();
         this.after();

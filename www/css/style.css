@@ -35,14 +35,15 @@
 #search > .action-buttons > .mdl-cell {
   width: 16.66667%; }
 
-#messages > p {
-  margin: 0;
-  min-height: 24px; }
-
-#messages > .message1 {
-  text-align: right; }
-  #messages > .message1 > i {
-    float: right; }
+#messages {
+  min-height: 144px; }
+  #messages > p {
+    margin: 0;
+    min-height: 24px; }
+  #messages > .topMessage {
+    text-align: right; }
+    #messages > .topMessage > i {
+      float: right; }
 
 #users.mdl-list {
   min-height: 200px; }
