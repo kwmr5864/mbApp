@@ -3,3 +3,5 @@ platforms/browser
 platforms/android
 
 node_modules
+
+*.log
