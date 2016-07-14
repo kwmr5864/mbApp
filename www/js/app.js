@@ -435,9 +435,18 @@ var appVm = new Vue({
                     break;
                 case Field.BLOCK:
                     var forwardPosition = this.position.getForward(this.direction.value);
-                    this.addMessage('岩を破壊した.');
-                    this.world.fields[forwardPosition.y][forwardPosition.x].field = Field.FLAT;
-                    this.world.fields[forwardPosition.y][forwardPosition.x].object = null;
+                    var target = this.world.fields[forwardPosition.y][forwardPosition.x].object;
+                    var addMessage = this.addMessage;
+                    this.users.forEach(function (x) {
+                        var damage = dice();
+                        target.life.sub(damage);
+                        addMessage(x.name + "\u306F" + target.name + "\u3092\u653B\u6483\u3057 " + damage + " \u306E\u640D\u50B7\u3092\u4E0E\u3048\u305F.");
+                    });
+                    if (target.life.current < 1) {
+                        this.addMessage('岩を破壊した.');
+                        this.world.fields[forwardPosition.y][forwardPosition.x].field = Field.FLAT;
+                        this.world.fields[forwardPosition.y][forwardPosition.x].object = null;
+                    }
                     this.afterAction();
                     break;
                 case Field.WALL:
@@ -469,7 +478,9 @@ var appVm = new Vue({
                     });
                     break;
                 case Field.BLOCK:
-                    this.addMessage('目の前に岩がある.');
+                    var forwardPosition = this.position.getForward(this.direction.value);
+                    var target = this.world.fields[forwardPosition.y][forwardPosition.x].object;
+                    this.addMessage("\u76EE\u306E\u524D\u306B\u5CA9\u304C\u3042\u308B. (" + target.life.current + " / " + target.life.max + ")");
                     break;
                 case Field.FLAT:
                 case Field.GOAL:
