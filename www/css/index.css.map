@@ -1,7 +1,0 @@
-{
-"version": 3,
-"mappings": ";;;;;;;;;;;;;;;;;;AAkBA,SAAU;EACR,OAAO,EAAE,IAAI;;ACfb,mBAAW;EACT,OAAO,EAAE,CAAC;EACV,+BAAW;IACT,MAAM,EAAE,CAAC;IACT,UAAU,EAAE,MAAM;IAClB,6CAAa;MACX,OAAO,EAAE,CAAC;MACV,KAAK,EAAE,IAAI;MACX,MAAM,EAAE,IAAI;AAKhB,mCAAW;EACT,KAAK,EAlBS,SAAQ;AAsBxB,qCAAW;EACT,KAAK,EAtBW,SAAQ;;ACA5B,aAAG;EACD,MAAM,EAAE,CAAC;EACT,UAAU,EAAE,IAAI;AAElB,qBAAW;EAIT,UAAU,EAAE,KAAK;EAHjB,yBAAG;IACD,KAAK,EAAE,KAAK;;ACPlB,eAAgB;EACd,UAAU,EAAE,KAAK;EACjB,iCAAiB;IACf,OAAO,EAAE,CAAC;IACV,UAAU,EAAE,OAAO",
-"sources": ["../../resources/scss/style.scss","../../resources/scss/partials/search.scss","../../resources/scss/partials/messages.scss","../../resources/scss/partials/users.scss"],
-"names": [],
-"file": "index.css"
-}

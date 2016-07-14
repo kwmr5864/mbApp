@@ -635,7 +635,7 @@ var appVm = new Vue({
                     break;
             }
             return value;
-        }
+        },
     },
     created: function () {
         this.direction.enable = 0 < this.users.length;
