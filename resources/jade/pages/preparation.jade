@@ -1,0 +1,7 @@
+include ../mixins/buttons/mdl-button
+
+.mdl-textfield.mdl-js-textfield
+    input.mdl-textfield__input(type="text" v-model="txt")
+    label.mdl-textfield__label
+    span.mdl-textfield__error invalid!
++mdl-fab-button('add', 'add();')

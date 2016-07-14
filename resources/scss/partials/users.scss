@@ -1,0 +1,7 @@
+#users.mdl-list {
+  min-height: 200px;
+  >.mdl-list__item {
+    padding: 0;
+    min-height: initial;
+  }
+}

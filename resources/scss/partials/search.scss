@@ -1,0 +1,27 @@
+$move-button-width: 100% / 3;
+$action-button-width: 100% / 6;
+
+#search {
+  >.mdl-grid {
+    padding: 0;
+    >.mdl-cell {
+      margin: 0;
+      text-align: center;
+      >.mdl-button {
+        padding: 0;
+        width: 100%;
+        height: 50px;
+      }
+    }
+  }
+  >.move-buttons {
+    >.mdl-cell {
+      width: $move-button-width;
+    }
+  }
+  >.action-buttons {
+    >.mdl-cell {
+      width: $action-button-width;
+    }
+  }
+}

@@ -1,0 +1,8 @@
+extends base
+
+block main
+    include views/users
+    template(v-if="0 < users.length")
+        include pages/search
+    template(v-if="users.length < 4")
+        include pages/preparation
