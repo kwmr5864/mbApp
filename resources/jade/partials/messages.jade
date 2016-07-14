@@ -1,9 +1,7 @@
 #messages
-    p.message1
-        span {{ message1 }}
+    p.topMessage
+        span {{ topMessage }}
         template(v-if="direction.enable")
             span 方向:
             +material-icon('{{ direction.display }}')
-    p.message2 {{ message2 }}
-    p.message3 {{ message3 }}
-    p.message4 {{ message4 }}
+    p.mainMessages(v-for="x in mainMessages") {{ x.text }}
