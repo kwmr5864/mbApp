@@ -3,12 +3,12 @@
 ///<reference path="../core/Position.ts"/>
 ///<reference path="../core/Cell.ts"/>
 ///<reference path="../utils/common.ts"/>
-///<reference path="../entities/Block.ts"/>
+///<reference path="../entities/Blocks.ts"/>
 
 module core {
+    import dice = utils.dice
     import Direction = enums.Direction
     import Field = enums.Field
-    import Block = entities.Block
     import Cell = core.Cell
 
     export class World {
@@ -24,10 +24,20 @@ module core {
             for (var i = 0; i <= World.MAX_Y; i++) {
                 var row = new Array(World.MAX_X + 1)
                 for (var j = 0; j <= World.MAX_X; j++) {
-                    switch (utils.dice()) {
+                    switch (dice()) {
                         case 6:
                             row[j] = new Cell(Field.BLOCK)
-                            row[j].object = new Block()
+                            switch (dice()) {
+                                case 1:
+                                    row[j].object = new entities.Rock()
+                                case 2:
+                                case 3:
+                                    row[j].object = new entities.Tree()
+                                    break
+                                default:
+                                    row[j].object = new entities.Tussock()
+                                    break
+                            }
                             break
                         default:
                             row[j] = new Cell(Field.FLAT)
