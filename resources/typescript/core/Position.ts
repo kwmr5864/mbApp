@@ -25,22 +25,6 @@ module core {
             }
             return position
         }
-        moveForward(direction: Direction) {
-            switch (direction) {
-                case Direction.NORTH:
-                    this.y--
-                    break
-                case Direction.EAST:
-                    this.x++
-                    break
-                case Direction.SOUTH:
-                    this.y++
-                    break
-                case Direction.WEST:
-                    this.x--
-                    break
-            }
-        }
         moveLeft(direction: Direction) {
             switch (direction) {
                 case Direction.NORTH:

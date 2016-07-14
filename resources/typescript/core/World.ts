@@ -7,13 +7,14 @@
 
 module core {
     import Direction = enums.Direction
-    import Field = enums.Field;
-    import Block = entities.Block;
+    import Field = enums.Field
+    import Block = entities.Block
     import Cell = core.Cell
+
     export class World {
-        public static MAX_X = 4
+        public static MAX_X = 7
         public static MIN_X = 0
-        public static MAX_Y = 4
+        public static MAX_Y = 7
         public static MIN_Y = 0
 
         public fields: Cell[][]
@@ -41,35 +42,38 @@ module core {
             this.fields[endY][endX].object = null
         }
 
-        public getForwardField(position: core.Position, direction: Direction): Field {
-            var field = Field.WALL
+        public getForwardCell(position: core.Position, direction: Direction): Cell {
+            var forwardPosition = this.getForwardPosition(position, direction)
+
+            return this.fields[forwardPosition.y][forwardPosition.x]
+        }
+
+        public getForwardPosition(position: core.Position, direction: Direction): core.Position {
             var forwardPosition = position.getForward(direction)
-            if (forwardPosition.x === -1 || forwardPosition.y === -1) {
-                return field
-            }
             switch (direction) {
                 case Direction.NORTH:
-                    if (World.MIN_Y <= forwardPosition.y) {
-                        field = this.fields[forwardPosition.y][forwardPosition.x].field
+                    if (forwardPosition.y < World.MIN_Y) {
+                        forwardPosition.y = World.MAX_Y
                     }
                     break
                 case Direction.EAST:
-                    if (forwardPosition.x <= World.MAX_X) {
-                        field = this.fields[forwardPosition.y][forwardPosition.x].field
+                    if (World.MAX_X < forwardPosition.x) {
+                        forwardPosition.x = World.MIN_X
                     }
                     break
                 case Direction.SOUTH:
-                    if (forwardPosition.y <= World.MAX_Y) {
-                        field = this.fields[forwardPosition.y][forwardPosition.x].field
+                    if (World.MAX_Y < forwardPosition.y) {
+                        forwardPosition.y = World.MIN_Y
                     }
                     break
                 case Direction.WEST:
-                    if (World.MIN_X <= forwardPosition.x) {
-                        field = this.fields[forwardPosition.y][forwardPosition.x].field
+                    if (forwardPosition.x < World.MIN_X) {
+                        forwardPosition.x = World.MAX_X
                     }
                     break
             }
-            return field
+
+            return forwardPosition
         }
     }
 }

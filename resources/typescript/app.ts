@@ -92,24 +92,22 @@ var appVm = new Vue({
             this.after()
         },
         action: function () {
-            var field = this.world.getForwardField(this.position, this.direction.value)
-            switch (field) {
+            var target = this.world.getForwardCell(this.position, this.direction.value)
+            switch (target.field) {
                 case Field.FLAT:
                     this.addMessage('空を切った.')
                     break
                 case Field.BLOCK:
-                    var forwardPosition = this.position.getForward(this.direction.value)
-                    var target = this.world.fields[forwardPosition.y][forwardPosition.x].object
                     var addMessage = this.addMessage
                     this.users.forEach(function (x) {
                         var damage = dice()
-                        target.life.sub(damage)
-                        addMessage(`${x.name}は${target.name}を攻撃し ${damage} の損傷を与えた.`)
+                        target.object.life.sub(damage)
+                        addMessage(`${x.name}は${target.object.name}を攻撃し ${damage} の損傷を与えた.`)
                     })
-                    if (target.life.current < 1) {
+                    if (target.object.life.current < 1) {
                         this.addMessage('岩を破壊した.')
-                        this.world.fields[forwardPosition.y][forwardPosition.x].field = Field.FLAT
-                        this.world.fields[forwardPosition.y][forwardPosition.x].object = null
+                        target.field = Field.FLAT
+                        target.object = null
                     }
                     this.afterAction()
                     break
@@ -133,8 +131,8 @@ var appVm = new Vue({
             this.after()
         },
         goForward: function () {
-            var field = this.world.getForwardField(this.position, this.direction.value)
-            switch (field) {
+            var target = this.world.getForwardCell(this.position, this.direction.value)
+            switch (target.field) {
                 case Field.WALL:
                     this.addMessage('壁にぶつかった!')
                     this.users.forEach(function (x) {
@@ -142,14 +140,13 @@ var appVm = new Vue({
                     })
                     break
                 case Field.BLOCK:
-                    var forwardPosition = this.position.getForward(this.direction.value)
-                    var target = this.world.fields[forwardPosition.y][forwardPosition.x].object
-                    this.addMessage(`目の前に岩がある. (${target.life.current} / ${target.life.max})`)
+                    this.addMessage(`目の前に岩がある. (${target.object.life.current} / ${target.object.life.max})`)
                     break
                 case Field.FLAT:
                 case Field.GOAL:
                     this.addMessage('前へ進んだ.')
-                    this.position.moveForward(this.direction.value)
+                    var forwardPosition = this.world.getForwardPosition(this.position, this.direction.value)
+                    this.position = forwardPosition
                     this.randomEvent()
                     this.afterAction()
                     break

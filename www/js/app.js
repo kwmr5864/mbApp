@@ -99,22 +99,6 @@ var core;
             }
             return position;
         };
-        Position.prototype.moveForward = function (direction) {
-            switch (direction) {
-                case Direction.NORTH:
-                    this.y--;
-                    break;
-                case Direction.EAST:
-                    this.x++;
-                    break;
-                case Direction.SOUTH:
-                    this.y++;
-                    break;
-                case Direction.WEST:
-                    this.x--;
-                    break;
-            }
-        };
         Position.prototype.moveLeft = function (direction) {
             switch (direction) {
                 case Direction.NORTH:
@@ -210,39 +194,39 @@ var core;
             this.fields[endY][endX].field = Field.GOAL;
             this.fields[endY][endX].object = null;
         };
-        World.prototype.getForwardField = function (position, direction) {
-            var field = Field.WALL;
+        World.prototype.getForwardCell = function (position, direction) {
+            var forwardPosition = this.getForwardPosition(position, direction);
+            return this.fields[forwardPosition.y][forwardPosition.x];
+        };
+        World.prototype.getForwardPosition = function (position, direction) {
             var forwardPosition = position.getForward(direction);
-            if (forwardPosition.x === -1 || forwardPosition.y === -1) {
-                return field;
-            }
             switch (direction) {
                 case Direction.NORTH:
-                    if (World.MIN_Y <= forwardPosition.y) {
-                        field = this.fields[forwardPosition.y][forwardPosition.x].field;
+                    if (forwardPosition.y < World.MIN_Y) {
+                        forwardPosition.y = World.MAX_Y;
                     }
                     break;
                 case Direction.EAST:
-                    if (forwardPosition.x <= World.MAX_X) {
-                        field = this.fields[forwardPosition.y][forwardPosition.x].field;
+                    if (World.MAX_X < forwardPosition.x) {
+                        forwardPosition.x = World.MIN_X;
                     }
                     break;
                 case Direction.SOUTH:
-                    if (forwardPosition.y <= World.MAX_Y) {
-                        field = this.fields[forwardPosition.y][forwardPosition.x].field;
+                    if (World.MAX_Y < forwardPosition.y) {
+                        forwardPosition.y = World.MIN_Y;
                     }
                     break;
                 case Direction.WEST:
-                    if (World.MIN_X <= forwardPosition.x) {
-                        field = this.fields[forwardPosition.y][forwardPosition.x].field;
+                    if (forwardPosition.x < World.MIN_X) {
+                        forwardPosition.x = World.MAX_X;
                     }
                     break;
             }
-            return field;
+            return forwardPosition;
         };
-        World.MAX_X = 4;
+        World.MAX_X = 7;
         World.MIN_X = 0;
-        World.MAX_Y = 4;
+        World.MAX_Y = 7;
         World.MIN_Y = 0;
         return World;
     }());
@@ -428,24 +412,22 @@ var appVm = new Vue({
             this.after();
         },
         action: function () {
-            var field = this.world.getForwardField(this.position, this.direction.value);
-            switch (field) {
+            var target = this.world.getForwardCell(this.position, this.direction.value);
+            switch (target.field) {
                 case Field.FLAT:
                     this.addMessage('空を切った.');
                     break;
                 case Field.BLOCK:
-                    var forwardPosition = this.position.getForward(this.direction.value);
-                    var target = this.world.fields[forwardPosition.y][forwardPosition.x].object;
                     var addMessage = this.addMessage;
                     this.users.forEach(function (x) {
                         var damage = dice();
-                        target.life.sub(damage);
-                        addMessage(x.name + "\u306F" + target.name + "\u3092\u653B\u6483\u3057 " + damage + " \u306E\u640D\u50B7\u3092\u4E0E\u3048\u305F.");
+                        target.object.life.sub(damage);
+                        addMessage(x.name + "\u306F" + target.object.name + "\u3092\u653B\u6483\u3057 " + damage + " \u306E\u640D\u50B7\u3092\u4E0E\u3048\u305F.");
                     });
-                    if (target.life.current < 1) {
+                    if (target.object.life.current < 1) {
                         this.addMessage('岩を破壊した.');
-                        this.world.fields[forwardPosition.y][forwardPosition.x].field = Field.FLAT;
-                        this.world.fields[forwardPosition.y][forwardPosition.x].object = null;
+                        target.field = Field.FLAT;
+                        target.object = null;
                     }
                     this.afterAction();
                     break;
@@ -469,8 +451,8 @@ var appVm = new Vue({
             this.after();
         },
         goForward: function () {
-            var field = this.world.getForwardField(this.position, this.direction.value);
-            switch (field) {
+            var target = this.world.getForwardCell(this.position, this.direction.value);
+            switch (target.field) {
                 case Field.WALL:
                     this.addMessage('壁にぶつかった!');
                     this.users.forEach(function (x) {
@@ -478,14 +460,13 @@ var appVm = new Vue({
                     });
                     break;
                 case Field.BLOCK:
-                    var forwardPosition = this.position.getForward(this.direction.value);
-                    var target = this.world.fields[forwardPosition.y][forwardPosition.x].object;
-                    this.addMessage("\u76EE\u306E\u524D\u306B\u5CA9\u304C\u3042\u308B. (" + target.life.current + " / " + target.life.max + ")");
+                    this.addMessage("\u76EE\u306E\u524D\u306B\u5CA9\u304C\u3042\u308B. (" + target.object.life.current + " / " + target.object.life.max + ")");
                     break;
                 case Field.FLAT:
                 case Field.GOAL:
                     this.addMessage('前へ進んだ.');
-                    this.position.moveForward(this.direction.value);
+                    var forwardPosition = this.world.getForwardPosition(this.position, this.direction.value);
+                    this.position = forwardPosition;
                     this.randomEvent();
                     this.afterAction();
                     break;
