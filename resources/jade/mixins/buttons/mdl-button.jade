@@ -1,0 +1,13 @@
+include ../icon/material-icon
+
+mixin mdl-button(name, method)
+    button.mdl-button.mdl-js-button.mdl-button--raised.mdl-js-ripple-effect.mdl-button--colored("@click"=method)
+        +material-icon(name)
+
+mixin mdl-fab-button(name, method)
+    button.mdl-button.mdl-js-button.mdl-button--fab.mdl-js-ripple-effect.mdl-button--colored("@click"=method)
+        +material-icon(name)
+
+mixin mdl-fab-button-mini(name, method)
+    button.mdl-button.mdl-js-button.mdl-button--fab.mdl-button--mini-fab.mdl-js-ripple-effect.mdl-button--colored("@click"=method)
+        +material-icon(name)

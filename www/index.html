@@ -1,0 +1,146 @@
+<!DOCTYPE html>
+<!--
+Licensed to the Apache Software Foundation (ASF) under one
+or more contributor license agreements.  See the NOTICE file
+distributed with this work for additional information
+regarding copyright ownership.  The ASF licenses this file
+to you under the Apache License, Version 2.0 (the
+"License"); you may not use this file except in compliance
+with the License.  You may obtain a copy of the License at
+
+http://www.apache.org/licenses/LICENSE-2.0
+
+Unless required by applicable law or agreed to in writing,
+software distributed under the License is distributed on an
+"AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+KIND, either express or implied.  See the License for the
+specific language governing permissions and limitations
+under the License.
+-->
+<html>
+  <head>
+    <!--
+    Customize this policy to fit your own app's needs. For more guidance, see:
+    https://github.com/apache/cordova-plugin-whitelist/blob/master/README.md#content-security-policy
+    Some notes:
+    * gap: is required only on iOS (when using UIWebView) and is needed for JS->native communication
+    * https://ssl.gstatic.com is required only on Android and is needed for TalkBack to function properly
+    * Disables use of inline scripts in order to mitigate risk of XSS vulnerabilities. To change this:
+    * Enable inline JS: add 'unsafe-inline' to default-src
+    -->
+    <meta charset="UTF-8">
+    <meta http-equiv="Content-Security-Policy" content="default-src 'self' data: gap: https://ssl.gstatic.com 'unsafe-eval'; style-src 'self' 'unsafe-inline'; script-src 'self' 'unsafe-inline' 'unsafe-eval'; media-src *">
+    <meta name="format-detection" content="telephone=no">
+    <meta name="msapplication-tap-highlight" content="no">
+    <meta name="viewport" content="user-scalable=no, initial-scale=1, maximum-scale=1, minimum-scale=1, width=device-width">
+    <link rel="stylesheet" type="text/css" href="font/material-icons.css?v=2.2.3">
+    <link rel="stylesheet" type="text/css" href="css/material.min.css?v=1.1.3">
+    <link rel="stylesheet" type="text/css" href="css/index.css?v=1468473130725">
+    <title>mbApp</title>
+  </head>
+  <body>
+    <div id="app" class="mdl-layout mdl-js-layout mdl-layout--fixed-header">
+      <header class="mdl-layout__header">
+        <div class="mdl-layout__header-row">
+          <h1 class="mdl-layout-title">mbApp</h1>
+          <div class="mdl-layout-spacer"></div>
+          <nav class="mdl-navigation mdl-layout--large-screen-only"><a href="" class="mdl-navigation__link">Home</a></nav>
+        </div>
+      </header>
+      <div id="nav" class="mdl-layout__drawer"><span class="mdl-layout-title"></span>
+        <nav class="mdl-navigation"><span @click="dissolution()" class="mdl-navigation__link">チームを解散する</span></nav>
+      </div>
+      <div class="mdl-layout__content">
+        <div v-cloak class="page-content">
+          <div id="messages">
+            <p class="message1"><span>{{ message1 }}</span>
+              <template v-if="direction.enable"><span>方向:</span><i class="material-icons">{{ direction.display }}</i>
+              </template>
+            </p>
+            <p class="message2">{{ message2 }}</p>
+            <p class="message3">{{ message3 }}</p>
+            <p class="message4">{{ message4 }}</p>
+          </div>
+          <ul id="users" class="mdl-list mdl-list__item--three-line">
+            <li v-for="x in users" class="mdl-list__item"><span class="mdl-list__item-primary-content"><i class="material-icons mdl-list__item-avatar">person</i><span class="name">{{ x.name }}</span><span class="mdl-list__item-text-body"><i class="material-icons">favorite_border</i><span>{{ x.life.current }} / {{ x.life.max }}</span><i class="material-icons">restaurant_menu</i><span>{{ x.food.current }} / {{ x.food.max }}</span></span></span><span class="mdl-list__item-secondary-content">
+                          <button @click="removeUser(x.name)" class="mdl-button mdl-js-button mdl-button--fab mdl-button--mini-fab mdl-js-ripple-effect mdl-button--colored"><i class="material-icons">clear</i>
+                          </button></span></li>
+          </ul>
+          <template v-if="0 &lt; users.length">
+            <div id="search">
+              <div class="mdl-grid move-buttons">
+                            <div class="mdl-cell mdl-cell--2-col mdl-cell--1-col-phone">
+                                          <button @click="turnLeft();" class="mdl-button mdl-js-button mdl-button--raised mdl-js-ripple-effect mdl-button--colored"><i class="material-icons">undo</i>
+                                          </button>
+                            </div>
+                            <div class="mdl-cell mdl-cell--2-col mdl-cell--1-col-phone">
+                                          <button @click="goForward();" class="mdl-button mdl-js-button mdl-button--raised mdl-js-ripple-effect mdl-button--colored"><i class="material-icons">arrow_upward</i>
+                                          </button>
+                            </div>
+                            <div class="mdl-cell mdl-cell--2-col mdl-cell--1-col-phone">
+                                          <button @click="turnRight();" class="mdl-button mdl-js-button mdl-button--raised mdl-js-ripple-effect mdl-button--colored"><i class="material-icons">redo</i>
+                                          </button>
+                            </div>
+              </div>
+              <div class="mdl-grid move-buttons">
+                            <div class="mdl-cell mdl-cell--2-col mdl-cell--1-col-phone">
+                                          <button @click="moveLeft();" class="mdl-button mdl-js-button mdl-button--raised mdl-js-ripple-effect mdl-button--colored"><i class="material-icons">arrow_backward</i>
+                                          </button>
+                            </div>
+                            <div class="mdl-cell mdl-cell--2-col mdl-cell--1-col-phone">
+                                          <button @click="turnBack();" class="mdl-button mdl-js-button mdl-button--raised mdl-js-ripple-effect mdl-button--colored"><i class="material-icons">arrow_downward</i>
+                                          </button>
+                            </div>
+                            <div class="mdl-cell mdl-cell--2-col mdl-cell--1-col-phone">
+                                          <button @click="moveRight();" class="mdl-button mdl-js-button mdl-button--raised mdl-js-ripple-effect mdl-button--colored"><i class="material-icons">arrow_forward</i>
+                                          </button>
+                            </div>
+              </div>
+              <div class="mdl-grid action-buttons">
+                            <div class="mdl-cell mdl-cell--2-col mdl-cell--1-col-phone">
+                                          <button @click="rest();" class="mdl-button mdl-js-button mdl-button--raised mdl-js-ripple-effect mdl-button--colored"><i class="material-icons">hotel</i>
+                                          </button>
+                            </div>
+                            <div class="mdl-cell mdl-cell--2-col mdl-cell--1-col-phone">
+                                          <button @click="search();" class="mdl-button mdl-js-button mdl-button--raised mdl-js-ripple-effect mdl-button--colored"><i class="material-icons">visibility</i>
+                                          </button>
+                            </div>
+                            <div class="mdl-cell mdl-cell--2-col mdl-cell--1-col-phone">
+                                          <button @click="action();" class="mdl-button mdl-js-button mdl-button--raised mdl-js-ripple-effect mdl-button--colored"><i class="material-icons">pan_tool</i>
+                                          </button>
+                            </div>
+                            <div class="mdl-cell mdl-cell--2-col mdl-cell--1-col-phone">
+                                          <button @click="useKey();" class="mdl-button mdl-js-button mdl-button--raised mdl-js-ripple-effect mdl-button--colored"><i class="material-icons">vpn_key</i>
+                                          </button>
+                            </div>
+                            <div class="mdl-cell mdl-cell--2-col mdl-cell--1-col-phone">
+                                          <button @click="watch();" class="mdl-button mdl-js-button mdl-button--raised mdl-js-ripple-effect mdl-button--colored"><i class="material-icons">watch</i>
+                                          </button>
+                            </div>
+                            <div class="mdl-cell mdl-cell--2-col mdl-cell--1-col-phone">
+                                          <button @click="compass();" class="mdl-button mdl-js-button mdl-button--raised mdl-js-ripple-effect mdl-button--colored"><i class="material-icons">explore</i>
+                                          </button>
+                            </div>
+              </div>
+            </div>
+          </template>
+          <template v-if="users.length &lt; 4">
+            <div class="mdl-textfield mdl-js-textfield">
+              <input type="text" v-model="txt" class="mdl-textfield__input">
+              <label class="mdl-textfield__label"></label><span class="mdl-textfield__error">invalid!</span>
+            </div>
+                        <button @click="add();" class="mdl-button mdl-js-button mdl-button--fab mdl-js-ripple-effect mdl-button--colored"><i class="material-icons">add</i>
+                        </button>
+          </template>
+        </div>
+      </div>
+      <footer></footer>
+    </div>
+    <script type="text/javascript" src="js/jquery.min.js?v=2.2.4"></script>
+    <script type="text/javascript" src="js/vue.min.js?v=1.0.26"></script>
+    <script type="text/javascript" src="cordova.js"></script>
+    <script type="text/javascript" src="js/material.min.js?v=1.1.3"></script>
+    <script type="text/javascript" src="js/index.js?v=1468473130726"></script>
+    <script type="text/javascript" src="js/app.js?v=1468473130726"></script>
+  </body>
+</html>

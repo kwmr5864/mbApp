@@ -1,0 +1,18 @@
+include ../mixins/grid/mdl-cell
+
+#search
+    .mdl-grid.move-buttons
+        +mdl-cell-button('undo', 'turnLeft();')
+        +mdl-cell-button('arrow_upward', 'goForward();')
+        +mdl-cell-button('redo', 'turnRight();')
+    .mdl-grid.move-buttons
+        +mdl-cell-button('arrow_backward', 'moveLeft();')
+        +mdl-cell-button('arrow_downward', 'turnBack();')
+        +mdl-cell-button('arrow_forward', 'moveRight();')
+    .mdl-grid.action-buttons
+        +mdl-cell-button('hotel', 'rest();')
+        +mdl-cell-button('visibility', 'search();')
+        +mdl-cell-button('pan_tool', 'action();')
+        +mdl-cell-button('vpn_key', 'useKey();')
+        +mdl-cell-button('watch', 'watch();')
+        +mdl-cell-button('explore', 'compass();')
