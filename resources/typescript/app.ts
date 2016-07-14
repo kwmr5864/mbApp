@@ -98,14 +98,15 @@ var appVm = new Vue({
                     this.addMessage('空を切った.')
                     break
                 case Field.BLOCK:
+                    var targetName = target.object.name
                     var addMessage = this.addMessage
                     this.users.forEach(function (x) {
                         var damage = dice()
                         target.object.life.sub(damage)
-                        addMessage(`${x.name}は${target.object.name}を攻撃し ${damage} の損傷を与えた.`)
+                        addMessage(`${x.name}は${targetName}を攻撃し ${damage} の損傷を与えた.`)
                     })
                     if (target.object.life.current < 1) {
-                        this.addMessage('岩を破壊した.')
+                        this.addMessage(`${targetName}を破壊した.`)
                         target.field = Field.FLAT
                         target.object = null
                     }
@@ -140,7 +141,8 @@ var appVm = new Vue({
                     })
                     break
                 case Field.BLOCK:
-                    this.addMessage(`目の前に岩がある. (${target.object.life.current} / ${target.object.life.max})`)
+                    var targetName = target.object.name
+                    this.addMessage(`目の前に${targetName}. (${target.object.life.current} / ${target.object.life.max})`)
                     break
                 case Field.FLAT:
                 case Field.GOAL:

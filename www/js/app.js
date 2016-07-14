@@ -154,20 +154,37 @@ var utils;
 })(utils || (utils = {}));
 var entities;
 (function (entities) {
-    var Block = (function (_super) {
-        __extends(Block, _super);
-        function Block() {
-            _super.call(this, '岩', 30);
+    var dice = utils.dice;
+    var Rock = (function (_super) {
+        __extends(Rock, _super);
+        function Rock() {
+            _super.call(this, '岩', 30 + dice());
         }
-        return Block;
+        return Rock;
     }(entities.LifeObject));
-    entities.Block = Block;
+    entities.Rock = Rock;
+    var Tree = (function (_super) {
+        __extends(Tree, _super);
+        function Tree() {
+            _super.call(this, '木', 10 + dice());
+        }
+        return Tree;
+    }(entities.LifeObject));
+    entities.Tree = Tree;
+    var Tussock = (function (_super) {
+        __extends(Tussock, _super);
+        function Tussock() {
+            _super.call(this, '草むら', dice());
+        }
+        return Tussock;
+    }(entities.LifeObject));
+    entities.Tussock = Tussock;
 })(entities || (entities = {}));
 var core;
 (function (core) {
+    var dice = utils.dice;
     var Direction = enums.Direction;
     var Field = enums.Field;
-    var Block = entities.Block;
     var Cell = core.Cell;
     var World = (function () {
         function World() {
@@ -177,10 +194,27 @@ var core;
             for (var i = 0; i <= World.MAX_Y; i++) {
                 var row = new Array(World.MAX_X + 1);
                 for (var j = 0; j <= World.MAX_X; j++) {
-                    switch (utils.dice()) {
+                    switch (dice()) {
+                        case 5:
                         case 6:
-                            row[j] = new Cell(Field.BLOCK);
-                            row[j].object = new Block();
+                            switch (dice()) {
+                                case 1:
+                                    row[j] = new Cell(Field.WALL);
+                                    break;
+                                case 2:
+                                    row[j] = new Cell(Field.BLOCK);
+                                    row[j].object = new entities.Rock();
+                                    break;
+                                case 3:
+                                case 4:
+                                    row[j] = new Cell(Field.BLOCK);
+                                    row[j].object = new entities.Tree();
+                                    break;
+                                default:
+                                    row[j] = new Cell(Field.BLOCK);
+                                    row[j].object = new entities.Tussock();
+                                    break;
+                            }
                             break;
                         default:
                             row[j] = new Cell(Field.FLAT);
@@ -418,14 +452,15 @@ var appVm = new Vue({
                     this.addMessage('空を切った.');
                     break;
                 case Field.BLOCK:
+                    var targetName = target.object.name;
                     var addMessage = this.addMessage;
                     this.users.forEach(function (x) {
                         var damage = dice();
                         target.object.life.sub(damage);
-                        addMessage(x.name + "\u306F" + target.object.name + "\u3092\u653B\u6483\u3057 " + damage + " \u306E\u640D\u50B7\u3092\u4E0E\u3048\u305F.");
+                        addMessage(x.name + "\u306F" + targetName + "\u3092\u653B\u6483\u3057 " + damage + " \u306E\u640D\u50B7\u3092\u4E0E\u3048\u305F.");
                     });
                     if (target.object.life.current < 1) {
-                        this.addMessage('岩を破壊した.');
+                        this.addMessage(targetName + "\u3092\u7834\u58CA\u3057\u305F.");
                         target.field = Field.FLAT;
                         target.object = null;
                     }
@@ -460,7 +495,8 @@ var appVm = new Vue({
                     });
                     break;
                 case Field.BLOCK:
-                    this.addMessage("\u76EE\u306E\u524D\u306B\u5CA9\u304C\u3042\u308B. (" + target.object.life.current + " / " + target.object.life.max + ")");
+                    var targetName = target.object.name;
+                    this.addMessage("\u76EE\u306E\u524D\u306B" + targetName + ". (" + target.object.life.current + " / " + target.object.life.max + ")");
                     break;
                 case Field.FLAT:
                 case Field.GOAL:
