@@ -25,16 +25,23 @@ module core {
                 var row = new Array(World.MAX_X + 1)
                 for (var j = 0; j <= World.MAX_X; j++) {
                     switch (dice()) {
+                        case 5:
                         case 6:
-                            row[j] = new Cell(Field.BLOCK)
                             switch (dice()) {
                                 case 1:
-                                    row[j].object = new entities.Rock()
+                                    row[j] = new Cell(Field.WALL)
+                                    break
                                 case 2:
+                                    row[j] = new Cell(Field.BLOCK)
+                                    row[j].object = new entities.Rock()
+                                    break
                                 case 3:
+                                case 4:
+                                    row[j] = new Cell(Field.BLOCK)
                                     row[j].object = new entities.Tree()
                                     break
                                 default:
+                                    row[j] = new Cell(Field.BLOCK)
                                     row[j].object = new entities.Tussock()
                                     break
                             }
