@@ -7,18 +7,23 @@
 ///<reference path="core/Cell.ts"/>
 ///<reference path="core/World.ts"/>
 ///<reference path="core/Position.ts"/>
-///<reference path="core/Event.ts"/>
 
 ///<reference path="utils/common.ts"/>
+
 ///<reference path="entities/User.ts"/>
+///<reference path="entities/Traps.ts"/>
+
 ///<reference path="models/Users.ts"/>
 
-import Direction = enums.Direction;
+import Direction = enums.Direction
 import Field = enums.Field
-import World = core.World;
+import World = core.World
 
-import random = utils.random;
-import dice = utils.dice;
+import random = utils.random
+import dice = utils.dice
+import Trap = entities.Trap;
+import TargetRange = enums.TargetRange;
+import Users = models.Users;
 
 var appVm = new Vue({
     el: '#app',
@@ -50,7 +55,7 @@ var appVm = new Vue({
             }
         },
         removeUser: function (userName: string) {
-            for (var i in this.users) {
+            for (var i = 0; i < this.users.length; i++) {
                 var user: entities.User = this.users[i];
                 if (userName === user.name) {
                     models.Users.delete(userName)
@@ -256,14 +261,15 @@ var appVm = new Vue({
             }
         },
         afterAction: function() {
-            var addMessage = this.addMessage
-            this.users.forEach(function (x: entities.User) {
-                x.flow()
-                if (x.life.current < 1) {
-                    addMessage(`${x.name}は力尽きた...`)
-                    models.Users.delete(x.name)
+            for (var i = 0; i < this.users.length; i++) {
+                var user = this.users[i]
+                user.flow()
+                if (user.life.current < 1) {
+                    this.addMessage(`${user.name}は力尽きた...`)
+                    models.Users.delete(user.name)
+                    this.users = models.Users.find()
                 }
-            })
+            }
             models.Users.save(this.users)
             this.users = models.Users.find()
         },
@@ -287,15 +293,31 @@ var appVm = new Vue({
                 case 4:
                     this.addMessage('食糧を拾った!')
                     this.users.forEach(function (x) {
-                        x.food.add(core.Event.getFood())
+                        var food = dice(2)
+                        x.food.add(food)
                     })
                     break
                 case 5:
-                    this.addMessage('トラップだ!')
-                    this.users.forEach(function (x) {
-                        x.life.sub(core.Event.getTrap())
-                    })
-                    this.addMessage('ダメージを受けた...')
+                    var trap = Trap.random()
+                    if (trap != null) {
+                        this.addMessage(`トラップだ! ${trap.name}!`)
+                        if (trap.range == TargetRange.ALL) {
+                            var addMessage = this.addMessage
+                            this.users.forEach(function (x) {
+                                var damage = trap.operate()
+                                x.life.sub(damage)
+                                addMessage(`${x.name}は ${damage} の被害を受けた.`)
+                            })
+                        } else {
+                            var damage = trap.operate()
+                            var userIndex = random(this.users.length) - 1
+                            var user = this.users[userIndex]
+                            user.life.sub(damage)
+                            this.addMessage(`${user.name}は ${damage} の被害を受けた.`)
+                        }
+                    } else {
+                        this.addMessage('トラップだ! ...どうやら作動しなかったようだ.')
+                    }
                     break
                 case 6:
                     this.addUserMessage('...')

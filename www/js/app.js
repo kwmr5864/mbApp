@@ -414,22 +414,6 @@ var core;
     }());
     core.World = World;
 })(core || (core = {}));
-var core;
-(function (core) {
-    var dice = utils.dice;
-    var Event = (function () {
-        function Event() {
-        }
-        Event.getFood = function () {
-            return dice(2);
-        };
-        Event.getTrap = function () {
-            return dice();
-        };
-        return Event;
-    }());
-    core.Event = Event;
-})(core || (core = {}));
 var entities;
 (function (entities) {
     var LimitedValue = core.LimitedValue;
@@ -464,6 +448,84 @@ var entities;
         return User;
     }(entities.LifeObject));
     entities.User = User;
+})(entities || (entities = {}));
+var enums;
+(function (enums) {
+    (function (TargetRange) {
+        TargetRange[TargetRange["ONE"] = 1] = "ONE";
+        TargetRange[TargetRange["ALL"] = 2] = "ALL";
+    })(enums.TargetRange || (enums.TargetRange = {}));
+    var TargetRange = enums.TargetRange;
+})(enums || (enums = {}));
+var entities;
+(function (entities) {
+    var dice = utils.dice;
+    var TargetRange = enums.TargetRange;
+    var Trap = (function () {
+        function Trap(name, range, base) {
+            this.name = name;
+            this.range = range;
+            this.base = base;
+        }
+        Trap.random = function () {
+            var trap = null;
+            switch (dice()) {
+                case 1:
+                    trap = new Sling();
+                    break;
+                case 2:
+                    trap = new Crossbow();
+                    break;
+                case 3:
+                    trap = new Gas();
+                    break;
+                case 4:
+                    trap = new Bomb();
+                    break;
+                default:
+                    break;
+            }
+            return trap;
+        };
+        Trap.prototype.operate = function () {
+            var damage = this.base + dice();
+            return damage;
+        };
+        return Trap;
+    }());
+    entities.Trap = Trap;
+    var Sling = (function (_super) {
+        __extends(Sling, _super);
+        function Sling() {
+            _super.call(this, '投石', TargetRange.ONE, 5);
+        }
+        return Sling;
+    }(Trap));
+    entities.Sling = Sling;
+    var Crossbow = (function (_super) {
+        __extends(Crossbow, _super);
+        function Crossbow() {
+            _super.call(this, 'クロスボウの矢', TargetRange.ONE, 30);
+        }
+        return Crossbow;
+    }(Trap));
+    entities.Crossbow = Crossbow;
+    var Gas = (function (_super) {
+        __extends(Gas, _super);
+        function Gas() {
+            _super.call(this, '毒ガス', TargetRange.ALL, 20);
+        }
+        return Gas;
+    }(Trap));
+    entities.Gas = Gas;
+    var Bomb = (function (_super) {
+        __extends(Bomb, _super);
+        function Bomb() {
+            _super.call(this, '爆弾', TargetRange.ALL, 50);
+        }
+        return Bomb;
+    }(Trap));
+    entities.Bomb = Bomb;
 })(entities || (entities = {}));
 var core;
 (function (core) {
@@ -533,6 +595,9 @@ var Field = enums.Field;
 var World = core.World;
 var random = utils.random;
 var dice = utils.dice;
+var Trap = entities.Trap;
+var TargetRange = enums.TargetRange;
+var Users = models.Users;
 var appVm = new Vue({
     el: '#app',
     data: {
@@ -565,7 +630,7 @@ var appVm = new Vue({
             }
         },
         removeUser: function (userName) {
-            for (var i in this.users) {
+            for (var i = 0; i < this.users.length; i++) {
                 var user = this.users[i];
                 if (userName === user.name) {
                     models.Users.delete(userName);
@@ -771,14 +836,15 @@ var appVm = new Vue({
             }
         },
         afterAction: function () {
-            var addMessage = this.addMessage;
-            this.users.forEach(function (x) {
-                x.flow();
-                if (x.life.current < 1) {
-                    addMessage(x.name + "\u306F\u529B\u5C3D\u304D\u305F...");
-                    models.Users.delete(x.name);
+            for (var i = 0; i < this.users.length; i++) {
+                var user = this.users[i];
+                user.flow();
+                if (user.life.current < 1) {
+                    this.addMessage(user.name + "\u306F\u529B\u5C3D\u304D\u305F...");
+                    models.Users.delete(user.name);
+                    this.users = models.Users.find();
                 }
-            });
+            }
             models.Users.save(this.users);
             this.users = models.Users.find();
         },
@@ -802,15 +868,33 @@ var appVm = new Vue({
                 case 4:
                     this.addMessage('食糧を拾った!');
                     this.users.forEach(function (x) {
-                        x.food.add(core.Event.getFood());
+                        var food = dice(2);
+                        x.food.add(food);
                     });
                     break;
                 case 5:
-                    this.addMessage('トラップだ!');
-                    this.users.forEach(function (x) {
-                        x.life.sub(core.Event.getTrap());
-                    });
-                    this.addMessage('ダメージを受けた...');
+                    var trap = Trap.random();
+                    if (trap != null) {
+                        this.addMessage("\u30C8\u30E9\u30C3\u30D7\u3060! " + trap.name + "!");
+                        if (trap.range == TargetRange.ALL) {
+                            var addMessage = this.addMessage;
+                            this.users.forEach(function (x) {
+                                var damage = trap.operate();
+                                x.life.sub(damage);
+                                addMessage(x.name + "\u306F " + damage + " \u306E\u88AB\u5BB3\u3092\u53D7\u3051\u305F.");
+                            });
+                        }
+                        else {
+                            var damage = trap.operate();
+                            var userIndex = random(this.users.length) - 1;
+                            var user = this.users[userIndex];
+                            user.life.sub(damage);
+                            this.addMessage(user.name + "\u306F " + damage + " \u306E\u88AB\u5BB3\u3092\u53D7\u3051\u305F.");
+                        }
+                    }
+                    else {
+                        this.addMessage('トラップだ! ...どうやら作動しなかったようだ.');
+                    }
                     break;
                 case 6:
                     this.addUserMessage('...');
