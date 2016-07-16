@@ -1,15 +1,22 @@
 ///<reference path="../enums/Direction.ts"/>
 ///<reference path="../enums/Field.ts"/>
+///<reference path="../enums/ItemType.ts"/>
+
 ///<reference path="../core/Position.ts"/>
 ///<reference path="../core/Cell.ts"/>
+
 ///<reference path="../utils/common.ts"/>
+
 ///<reference path="../entities/Blocks.ts"/>
+///<reference path="../entities/Item.ts"/>
 
 module core {
     import dice = utils.dice
     import Direction = enums.Direction
     import Field = enums.Field
+    import ItemType = enums.ItemType
     import Cell = core.Cell
+    import Item = entities.Item;
 
     export class World {
         public static MAX_X = 7
@@ -33,16 +40,32 @@ module core {
                                     break
                                 case 2:
                                     row[j] = new Cell(Field.BLOCK)
-                                    row[j].object = new entities.Rock()
+                                    row[j].block = new entities.Rock()
                                     break
                                 case 3:
+                                    row[j] = new Cell(Field.BLOCK)
+                                    row[j].block = new entities.Tree()
+                                    break
                                 case 4:
                                     row[j] = new Cell(Field.BLOCK)
-                                    row[j].object = new entities.Tree()
+                                    row[j].block = new entities.TreasureBox()
+                                    row[j].block.addRandomItem()
                                     break
-                                default:
+                                case 5:
                                     row[j] = new Cell(Field.BLOCK)
-                                    row[j].object = new entities.Tussock()
+                                    row[j].block = new entities.Tussock()
+                                    break
+                                case 6:
+                                    row[j] = new Cell(Field.FLAT)
+                                    break
+                            }
+                            switch (dice()) {
+                                case 1:
+                                case 2:
+                                    var item = Item.getRandom()
+                                    if (item != null) {
+                                        row[j].treasure = item
+                                    }
                                     break
                             }
                             break
@@ -56,7 +79,7 @@ module core {
             let endX = utils.random(World.MAX_X)
             let endY = utils.random(World.MAX_Y)
             this.fields[endY][endX].field = Field.GOAL
-            this.fields[endY][endX].object = null
+            this.fields[endY][endX].block = null
         }
 
         public getForwardCell(position: core.Position, direction: Direction): Cell {
