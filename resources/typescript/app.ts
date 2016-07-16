@@ -147,7 +147,13 @@ var appVm = new Vue({
             this.after()
         },
         compass: function () {
-            this.direction.enable = !this.direction.enable
+            if (this.direction.enable) {
+                this.addMessage('コンパスを止めた.')
+                this.direction.enable = false
+            } else {
+                this.addMessage('コンパスを起動した.')
+                this.direction.enable = true
+            }
             this.after()
         },
         goForward: function () {
@@ -172,6 +178,7 @@ var appVm = new Vue({
             this.after()
         },
         turnLeft: function () {
+            this.addMessage('左を向いた.')
             switch (this.direction.value) {
                 case Direction.NORTH:
                     this.direction.value = Direction.WEST
@@ -191,6 +198,7 @@ var appVm = new Vue({
             this.after()
         },
         turnRight: function () {
+            this.addMessage('右を向いた.')
             switch (this.direction.value) {
                 case Direction.NORTH:
                     this.direction.value  = Direction.EAST
@@ -210,6 +218,7 @@ var appVm = new Vue({
             this.after()
         },
         turnBack: function () {
+            this.addMessage('後ろを向いた.')
             switch (this.direction.value) {
                 case Direction.NORTH:
                     this.direction.value = Direction.SOUTH
@@ -375,7 +384,6 @@ var appVm = new Vue({
     created: function () {
         this.addMessage('mbAppの世界にようこそ!', EmphasisColor.INVERSE)
         this.addMessage('メンバを4人追加してチームを作ってください!')
-        this.direction.enable = 0 < this.users.length
         this.world.make()
         this.after()
     }
