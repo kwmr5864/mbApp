@@ -13,6 +13,11 @@ module entities {
             super('木', 10 + dice())
         }
     }
+    export class TreasureBox extends LifeObject {
+        constructor() {
+            super('木箱', 10 + dice(2))
+        }
+    }
     export class Tussock extends LifeObject {
         constructor() {
             super('草むら', dice())

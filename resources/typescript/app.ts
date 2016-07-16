@@ -75,8 +75,8 @@ var appVm = new Vue({
             this.after()
         },
         search: function () {
-            var field = this.world.fields[this.position.y][this.position.x].field
-            switch (field) {
+            var target = this.world.fields[this.position.y][this.position.x]
+            switch (target.field) {
                 case Field.GOAL:
                     this.addUserMessage('ついに宝を見つけたぞー!!')
                     this.addMessage('＊ おめでとう ＊')
@@ -86,7 +86,13 @@ var appVm = new Vue({
                     this.world.make()
                     break
                 default:
-                    this.addMessage('ここに宝はないようだ.')
+                    if (target.treasure != null) {
+                        this.addMessage('宝箱を見つけた!')
+                        this.addMessage(`${target.treasure.name}を手に入れた.`)
+                        target.treasure = null
+                    } else {
+                        this.addMessage('ここに宝はないようだ.')
+                    }
                     break
             }
             this.after()
@@ -98,17 +104,22 @@ var appVm = new Vue({
                     this.addMessage('空を切った.')
                     break
                 case Field.BLOCK:
-                    var targetName = target.object.name
+                    var targetName = target.block.name
                     var addMessage = this.addMessage
                     this.users.forEach(function (x) {
                         var damage = dice()
-                        target.object.life.sub(damage)
+                        target.block.life.sub(damage)
                         addMessage(`${x.name}は${targetName}を攻撃し ${damage} の損傷を与えた.`)
                     })
-                    if (target.object.life.current < 1) {
-                        this.addMessage(`${targetName}を破壊した.`)
+                    if (target.block.life.current < 1) {
+                        this.addMessage(`${targetName}を破壊.`)
+                        if (0 < target.block.items.length) {
+                            // TODO: 所有のアイテムからランダムで設置する
+                            this.addMessage('目の前に何かが落ちた.')
+                            target.treasure = target.block.items[0]
+                        }
                         target.field = Field.FLAT
-                        target.object = null
+                        target.block = null
                     }
                     this.afterAction()
                     break
@@ -141,8 +152,8 @@ var appVm = new Vue({
                     })
                     break
                 case Field.BLOCK:
-                    var targetName = target.object.name
-                    this.addMessage(`目の前に${targetName}. (${target.object.life.current} / ${target.object.life.max})`)
+                    var targetName = target.block.name
+                    this.addMessage(`目の前に${targetName}. (${target.block.life.current} / ${target.block.life.max})`)
                     break
                 case Field.FLAT:
                 case Field.GOAL:
@@ -221,11 +232,12 @@ var appVm = new Vue({
             this.after()
         },
         afterAction: function() {
+            var addMessage = this.addMessage
             this.users.forEach(function (x: entities.User) {
                 x.flow()
                 if (x.life.current < 1) {
+                    addMessage(`${x.name}は力尽きた...`)
                     models.Users.delete(x.name)
-                    this.addMessage(`${x.name}は力尽きた...`)
                 }
             })
             models.Users.save(this.users)

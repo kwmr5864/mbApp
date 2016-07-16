@@ -46,6 +46,15 @@ var core;
     }());
     core.LimitedValue = LimitedValue;
 })(core || (core = {}));
+var enums;
+(function (enums) {
+    (function (ItemType) {
+        ItemType[ItemType["OINTMENT"] = 1] = "OINTMENT";
+        ItemType[ItemType["MEAT"] = 2] = "MEAT";
+        ItemType[ItemType["PAPER"] = 3] = "PAPER";
+    })(enums.ItemType || (enums.ItemType = {}));
+    var ItemType = enums.ItemType;
+})(enums || (enums = {}));
 var entities;
 (function (entities) {
     var LimitedValue = core.LimitedValue;
@@ -54,8 +63,21 @@ var entities;
             if (_life === void 0) { _life = 100; }
             this.name = name;
             this._life = _life;
+            this.items = [];
+            this.itemLimit = 3;
             this.life = new LimitedValue(_life);
         }
+        LifeObject.prototype.addItem = function (item) {
+            if (this.items.length <= this.itemLimit) {
+                this.items.push(item);
+            }
+        };
+        LifeObject.prototype.addRandomItem = function () {
+            var item = entities.Item.getRandom();
+            if (item != null) {
+                this.addItem(item);
+            }
+        };
         return LifeObject;
     }());
     entities.LifeObject = LifeObject;
@@ -171,6 +193,14 @@ var entities;
         return Tree;
     }(entities.LifeObject));
     entities.Tree = Tree;
+    var TreasureBox = (function (_super) {
+        __extends(TreasureBox, _super);
+        function TreasureBox() {
+            _super.call(this, '木箱', 10 + dice(2));
+        }
+        return TreasureBox;
+    }(entities.LifeObject));
+    entities.TreasureBox = TreasureBox;
     var Tussock = (function (_super) {
         __extends(Tussock, _super);
         function Tussock() {
@@ -180,12 +210,44 @@ var entities;
     }(entities.LifeObject));
     entities.Tussock = Tussock;
 })(entities || (entities = {}));
+var entities;
+(function (entities) {
+    var ItemType = enums.ItemType;
+    var Item = (function (_super) {
+        __extends(Item, _super);
+        function Item(name, itemType) {
+            _super.call(this, name, 1);
+            this.name = name;
+            this.itemType = itemType;
+        }
+        Item.getRandom = function () {
+            var item = null;
+            switch (dice()) {
+                case 1:
+                case 2:
+                    item = new Item('軟膏', ItemType.OINTMENT);
+                    break;
+                case 3:
+                case 4:
+                    item = new Item('肉', ItemType.MEAT);
+                    break;
+                case 5:
+                    item = new Item('紙切れ', ItemType.PAPER);
+                    break;
+            }
+            return item;
+        };
+        return Item;
+    }(entities.LifeObject));
+    entities.Item = Item;
+})(entities || (entities = {}));
 var core;
 (function (core) {
     var dice = utils.dice;
     var Direction = enums.Direction;
     var Field = enums.Field;
     var Cell = core.Cell;
+    var Item = entities.Item;
     var World = (function () {
         function World() {
         }
@@ -203,16 +265,32 @@ var core;
                                     break;
                                 case 2:
                                     row[j] = new Cell(Field.BLOCK);
-                                    row[j].object = new entities.Rock();
+                                    row[j].block = new entities.Rock();
                                     break;
                                 case 3:
+                                    row[j] = new Cell(Field.BLOCK);
+                                    row[j].block = new entities.Tree();
+                                    break;
                                 case 4:
                                     row[j] = new Cell(Field.BLOCK);
-                                    row[j].object = new entities.Tree();
+                                    row[j].block = new entities.TreasureBox();
+                                    row[j].block.addRandomItem();
                                     break;
-                                default:
+                                case 5:
                                     row[j] = new Cell(Field.BLOCK);
-                                    row[j].object = new entities.Tussock();
+                                    row[j].block = new entities.Tussock();
+                                    break;
+                                case 6:
+                                    row[j] = new Cell(Field.FLAT);
+                                    break;
+                            }
+                            switch (dice()) {
+                                case 1:
+                                case 2:
+                                    var item = Item.getRandom();
+                                    if (item != null) {
+                                        row[j].treasure = item;
+                                    }
                                     break;
                             }
                             break;
@@ -226,7 +304,7 @@ var core;
             var endX = utils.random(World.MAX_X);
             var endY = utils.random(World.MAX_Y);
             this.fields[endY][endX].field = Field.GOAL;
-            this.fields[endY][endX].object = null;
+            this.fields[endY][endX].block = null;
         };
         World.prototype.getForwardCell = function (position, direction) {
             var forwardPosition = this.getForwardPosition(position, direction);
@@ -285,6 +363,7 @@ var core;
 var entities;
 (function (entities) {
     var LimitedValue = core.LimitedValue;
+    var ItemType = enums.ItemType;
     var User = (function (_super) {
         __extends(User, _super);
         function User(name) {
@@ -298,6 +377,18 @@ var entities;
             }
             else {
                 this.food.current--;
+            }
+        };
+        User.prototype.useItem = function (item) {
+            switch (item.itemType) {
+                case ItemType.OINTMENT:
+                    this.life.add(this.life.max / 2);
+                    break;
+                case ItemType.MEAT:
+                    this.food.add(this.food.max / 10);
+                    break;
+                case ItemType.PAPER:
+                    break;
             }
         };
         return User;
@@ -429,8 +520,8 @@ var appVm = new Vue({
             this.after();
         },
         search: function () {
-            var field = this.world.fields[this.position.y][this.position.x].field;
-            switch (field) {
+            var target = this.world.fields[this.position.y][this.position.x];
+            switch (target.field) {
                 case Field.GOAL:
                     this.addUserMessage('ついに宝を見つけたぞー!!');
                     this.addMessage('＊ おめでとう ＊');
@@ -440,7 +531,14 @@ var appVm = new Vue({
                     this.world.make();
                     break;
                 default:
-                    this.addMessage('ここに宝はないようだ.');
+                    if (target.treasure != null) {
+                        this.addMessage('宝箱を見つけた!');
+                        this.addMessage(target.treasure.name + "\u3092\u624B\u306B\u5165\u308C\u305F.");
+                        target.treasure = null;
+                    }
+                    else {
+                        this.addMessage('ここに宝はないようだ.');
+                    }
                     break;
             }
             this.after();
@@ -452,17 +550,21 @@ var appVm = new Vue({
                     this.addMessage('空を切った.');
                     break;
                 case Field.BLOCK:
-                    var targetName = target.object.name;
+                    var targetName = target.block.name;
                     var addMessage = this.addMessage;
                     this.users.forEach(function (x) {
                         var damage = dice();
-                        target.object.life.sub(damage);
+                        target.block.life.sub(damage);
                         addMessage(x.name + "\u306F" + targetName + "\u3092\u653B\u6483\u3057 " + damage + " \u306E\u640D\u50B7\u3092\u4E0E\u3048\u305F.");
                     });
-                    if (target.object.life.current < 1) {
-                        this.addMessage(targetName + "\u3092\u7834\u58CA\u3057\u305F.");
+                    if (target.block.life.current < 1) {
+                        this.addMessage(targetName + "\u3092\u7834\u58CA.");
+                        if (0 < target.block.items.length) {
+                            this.addMessage('目の前に何かが落ちた.');
+                            target.treasure = target.block.items[0];
+                        }
                         target.field = Field.FLAT;
-                        target.object = null;
+                        target.block = null;
                     }
                     this.afterAction();
                     break;
@@ -495,8 +597,8 @@ var appVm = new Vue({
                     });
                     break;
                 case Field.BLOCK:
-                    var targetName = target.object.name;
-                    this.addMessage("\u76EE\u306E\u524D\u306B" + targetName + ". (" + target.object.life.current + " / " + target.object.life.max + ")");
+                    var targetName = target.block.name;
+                    this.addMessage("\u76EE\u306E\u524D\u306B" + targetName + ". (" + target.block.life.current + " / " + target.block.life.max + ")");
                     break;
                 case Field.FLAT:
                 case Field.GOAL:
@@ -575,11 +677,12 @@ var appVm = new Vue({
             this.after();
         },
         afterAction: function () {
+            var addMessage = this.addMessage;
             this.users.forEach(function (x) {
                 x.flow();
                 if (x.life.current < 1) {
+                    addMessage(x.name + "\u306F\u529B\u5C3D\u304D\u305F...");
                     models.Users.delete(x.name);
-                    this.addMessage(x.name + "\u306F\u529B\u5C3D\u304D\u305F...");
                 }
             });
             models.Users.save(this.users);

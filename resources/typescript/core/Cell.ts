@@ -4,7 +4,8 @@
 module core {
     import LifeObject = entities.LifeObject;
     export class Cell {
-        public object: LifeObject
+        public block: LifeObject
+        public treasure: LifeObject
         constructor(public field: Field) {}
     }
 }
