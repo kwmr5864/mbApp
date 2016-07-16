@@ -3,3 +3,7 @@ include ../buttons/mdl-button
 mixin mdl-cell-button(name, method)
     .mdl-cell.mdl-cell--2-col.mdl-cell--1-col-phone
         +mdl-button(name, method)
+
+mixin mdl-cell-button-half(name, method)
+    .mdl-cell.mdl-cell--2-col.mdl-cell--1-col-phone.half
+        +mdl-button(name, method)
