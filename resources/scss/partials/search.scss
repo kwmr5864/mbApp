@@ -14,13 +14,11 @@ $action-button-width: 100% / 6;
       }
     }
   }
-  >.move-buttons {
+  >.buttons {
     >.mdl-cell {
       width: $move-button-width;
     }
-  }
-  >.action-buttons {
-    >.mdl-cell {
+    >.mdl-cell.half {
       width: $action-button-width;
     }
   }

@@ -27,7 +27,7 @@ import random = utils.random
 import dice = utils.dice
 import Trap = entities.Trap
 import Users = models.Users
-import User = entities.User;
+import User = entities.User
 
 var appVm = new Vue({
     el: '#app',
@@ -41,29 +41,39 @@ var appVm = new Vue({
             display: '',
             enable: false
         },
-        world: new core.World(),
+        world: new core.World('迷宮 地下1階'),
         position: new core.Position(utils.random(World.MAX_Y), utils.random(World.MAX_X))
     },
     methods: {
-        add: function () {
-            if (this.txt.trim() == '') {
+        addMember: function () {
+            var name = this.txt.trim()
+            if (name == '') {
               this.addMessage('名前を入力してください!')
-            } else if (jQuery.inArray(this.txt, this) < 0) {
-                var user = new entities.User(this.txt)
-                models.Users.add(user)
-                this.users = models.Users.find()
-                this.addMessage(`${this.txt}を追加しました!`, EmphasisColor.SUCCESS)
-                this.txt = ''
             } else {
-                this.addMessage('その人は追加済みです!')
+                var added = false
+                for (var i = 0; i < this.users.length; i++) {
+                    if (name == this.users[i].name) {
+                        added = true
+                        break
+                    }
+                }
+                if (added) {
+                    this.addMessage(`${name}は追加済みです!`)
+                } else {
+                    var user = new User(name)
+                    Users.add(user)
+                    this.users = Users.find()
+                    this.addMessage(`${name}を追加しました!`, EmphasisColor.SUCCESS)
+                }
             }
+            this.txt = ''
         },
         removeUser: function (userName: string) {
             for (var i = 0; i < this.users.length; i++) {
-                var user: entities.User = this.users[i];
+                var user: User = this.users[i];
                 if (userName === user.name) {
-                    models.Users.delete(userName)
-                    this.users = models.Users.find()
+                    Users.delete(userName)
+                    this.users = Users.find()
                     this.addMessage(`${userName}を除名しました!`)
                 }
             }
@@ -92,7 +102,7 @@ var appVm = new Vue({
             switch (target.field) {
                 case Field.GOAL:
                     this.addUserMessage('ついに宝を見つけたぞー!!')
-                    this.addMessage('＊ おめでとう ＊')
+                    this.addMessage('＊ おめでとう ＊', EmphasisColor.INVERSE)
                     this.addMessage('こうして一行は解散した...')
                     models.Users.clear()
                     this.users = models.Users.find()
@@ -165,11 +175,11 @@ var appVm = new Vue({
             var target = this.world.getForwardCell(this.position, this.direction.value)
             switch (target.field) {
                 case Field.WALL:
-                    this.addMessage('目の前には壁. (どうやっても壊せそうにない)')
+                    this.addMessage('目の前には壁. (どうやっても壊せそうにない)', EmphasisColor.INVERSE)
                     break
                 case Field.BLOCK:
                     var targetName = target.block.name
-                    this.addMessage(`目の前に${targetName}. (${target.block.life.current} / ${target.block.life.max})`)
+                    this.addMessage(`目の前に${targetName}. (${target.block.life.current} / ${target.block.life.max})`, EmphasisColor.INVERSE)
                     break
                 case Field.FLAT:
                 case Field.GOAL:

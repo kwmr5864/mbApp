@@ -6,6 +6,10 @@
     font-size: 10pt;
   }
   >.topMessage {
+    .worldName {
+      float: left;
+      height: 20px;
+    }
     >i {
       float: right;
     }

@@ -272,7 +272,8 @@ var core;
     var Cell = core.Cell;
     var Item = entities.Item;
     var World = (function () {
-        function World() {
+        function World(name) {
+            this.name = name;
         }
         World.prototype.make = function () {
             this.fields = new Array(World.MAX_Y + 1);
@@ -625,31 +626,41 @@ var appVm = new Vue({
             display: '',
             enable: false
         },
-        world: new core.World(),
+        world: new core.World('迷宮 地下1階'),
         position: new core.Position(utils.random(World.MAX_Y), utils.random(World.MAX_X))
     },
     methods: {
-        add: function () {
-            if (this.txt.trim() == '') {
+        addMember: function () {
+            var name = this.txt.trim();
+            if (name == '') {
                 this.addMessage('名前を入力してください!');
             }
-            else if (jQuery.inArray(this.txt, this) < 0) {
-                var user = new entities.User(this.txt);
-                models.Users.add(user);
-                this.users = models.Users.find();
-                this.addMessage(this.txt + "\u3092\u8FFD\u52A0\u3057\u307E\u3057\u305F!", EmphasisColor.SUCCESS);
-                this.txt = '';
-            }
             else {
-                this.addMessage('その人は追加済みです!');
+                var added = false;
+                for (var i = 0; i < this.users.length; i++) {
+                    if (name == this.users[i].name) {
+                        added = true;
+                        break;
+                    }
+                }
+                if (added) {
+                    this.addMessage(name + "\u306F\u8FFD\u52A0\u6E08\u307F\u3067\u3059!");
+                }
+                else {
+                    var user = new User(name);
+                    Users.add(user);
+                    this.users = Users.find();
+                    this.addMessage(name + "\u3092\u8FFD\u52A0\u3057\u307E\u3057\u305F!", EmphasisColor.SUCCESS);
+                }
             }
+            this.txt = '';
         },
         removeUser: function (userName) {
             for (var i = 0; i < this.users.length; i++) {
                 var user = this.users[i];
                 if (userName === user.name) {
-                    models.Users.delete(userName);
-                    this.users = models.Users.find();
+                    Users.delete(userName);
+                    this.users = Users.find();
                     this.addMessage(userName + "\u3092\u9664\u540D\u3057\u307E\u3057\u305F!");
                 }
             }
@@ -678,7 +689,7 @@ var appVm = new Vue({
             switch (target.field) {
                 case Field.GOAL:
                     this.addUserMessage('ついに宝を見つけたぞー!!');
-                    this.addMessage('＊ おめでとう ＊');
+                    this.addMessage('＊ おめでとう ＊', EmphasisColor.INVERSE);
                     this.addMessage('こうして一行は解散した...');
                     models.Users.clear();
                     this.users = models.Users.find();
@@ -752,11 +763,11 @@ var appVm = new Vue({
             var target = this.world.getForwardCell(this.position, this.direction.value);
             switch (target.field) {
                 case Field.WALL:
-                    this.addMessage('目の前には壁. (どうやっても壊せそうにない)');
+                    this.addMessage('目の前には壁. (どうやっても壊せそうにない)', EmphasisColor.INVERSE);
                     break;
                 case Field.BLOCK:
                     var targetName = target.block.name;
-                    this.addMessage("\u76EE\u306E\u524D\u306B" + targetName + ". (" + target.block.life.current + " / " + target.block.life.max + ")");
+                    this.addMessage("\u76EE\u306E\u524D\u306B" + targetName + ". (" + target.block.life.current + " / " + target.block.life.max + ")", EmphasisColor.INVERSE);
                     break;
                 case Field.FLAT:
                 case Field.GOAL:
