@@ -25,37 +25,47 @@ module core {
             }
             return position
         }
-        moveLeft(direction: Direction) {
+        getLeft(direction: Direction) {
+            var position: core.Position
             switch (direction) {
                 case Direction.NORTH:
-                    this.x--
+                    position = new core.Position(this.x - 1, this.y)
                     break
                 case Direction.EAST:
-                    this.y--
+                    position = new core.Position(this.x, this.y - 1)
                     break
                 case Direction.SOUTH:
-                    this.x++
+                    position = new core.Position(this.x + 1, this.y)
                     break
                 case Direction.WEST:
-                    this.y++
+                    position = new core.Position(this.x, this.y + 1)
+                    break
+                default:
+                    position = new core.Position(-1, -1)
                     break
             }
+            return position
         }
-        moveRight(direction: Direction) {
+        getRight(direction: Direction) {
+            var position: core.Position
             switch (direction) {
                 case Direction.NORTH:
-                    this.x++
+                    position = new core.Position(this.x + 1, this.y)
                     break
                 case Direction.EAST:
-                    this.y++
+                    position = new core.Position(this.x, this.y + 1)
                     break
                 case Direction.SOUTH:
-                    this.x--
+                    position = new core.Position(this.x - 1, this.y)
                     break
                 case Direction.WEST:
-                    this.y--
+                    position = new core.Position(this.x, this.y - 1)
+                    break
+                default:
+                    position = new core.Position(-1, -1)
                     break
             }
+            return position
         }
     }
 }

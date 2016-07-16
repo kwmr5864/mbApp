@@ -121,37 +121,47 @@ var core;
             }
             return position;
         };
-        Position.prototype.moveLeft = function (direction) {
+        Position.prototype.getLeft = function (direction) {
+            var position;
             switch (direction) {
                 case Direction.NORTH:
-                    this.x--;
+                    position = new core.Position(this.x - 1, this.y);
                     break;
                 case Direction.EAST:
-                    this.y--;
+                    position = new core.Position(this.x, this.y - 1);
                     break;
                 case Direction.SOUTH:
-                    this.x++;
+                    position = new core.Position(this.x + 1, this.y);
                     break;
                 case Direction.WEST:
-                    this.y++;
+                    position = new core.Position(this.x, this.y + 1);
+                    break;
+                default:
+                    position = new core.Position(-1, -1);
                     break;
             }
+            return position;
         };
-        Position.prototype.moveRight = function (direction) {
+        Position.prototype.getRight = function (direction) {
+            var position;
             switch (direction) {
                 case Direction.NORTH:
-                    this.x++;
+                    position = new core.Position(this.x + 1, this.y);
                     break;
                 case Direction.EAST:
-                    this.y++;
+                    position = new core.Position(this.x, this.y + 1);
                     break;
                 case Direction.SOUTH:
-                    this.x--;
+                    position = new core.Position(this.x - 1, this.y);
                     break;
                 case Direction.WEST:
-                    this.y--;
+                    position = new core.Position(this.x, this.y - 1);
+                    break;
+                default:
+                    position = new core.Position(-1, -1);
                     break;
             }
+            return position;
         };
         return Position;
     }());
@@ -307,34 +317,94 @@ var core;
             this.fields[endY][endX].block = null;
         };
         World.prototype.getForwardCell = function (position, direction) {
-            var forwardPosition = this.getForwardPosition(position, direction);
-            return this.fields[forwardPosition.y][forwardPosition.x];
+            var targetPosition = this.getForwardPosition(position, direction);
+            return this.fields[targetPosition.y][targetPosition.x];
+        };
+        World.prototype.getLeftCell = function (position, direction) {
+            var targetPosition = this.getLeftPosition(position, direction);
+            return this.fields[targetPosition.y][targetPosition.x];
+        };
+        World.prototype.getRightCell = function (position, direction) {
+            var targetPosition = this.getRightPosition(position, direction);
+            return this.fields[targetPosition.y][targetPosition.x];
         };
         World.prototype.getForwardPosition = function (position, direction) {
-            var forwardPosition = position.getForward(direction);
+            var targetPosition = position.getForward(direction);
             switch (direction) {
                 case Direction.NORTH:
-                    if (forwardPosition.y < World.MIN_Y) {
-                        forwardPosition.y = World.MAX_Y;
+                    if (targetPosition.y < World.MIN_Y) {
+                        targetPosition.y = World.MAX_Y;
                     }
                     break;
                 case Direction.EAST:
-                    if (World.MAX_X < forwardPosition.x) {
-                        forwardPosition.x = World.MIN_X;
+                    if (World.MAX_X < targetPosition.x) {
+                        targetPosition.x = World.MIN_X;
                     }
                     break;
                 case Direction.SOUTH:
-                    if (World.MAX_Y < forwardPosition.y) {
-                        forwardPosition.y = World.MIN_Y;
+                    if (World.MAX_Y < targetPosition.y) {
+                        targetPosition.y = World.MIN_Y;
                     }
                     break;
                 case Direction.WEST:
-                    if (forwardPosition.x < World.MIN_X) {
-                        forwardPosition.x = World.MAX_X;
+                    if (targetPosition.x < World.MIN_X) {
+                        targetPosition.x = World.MAX_X;
                     }
                     break;
             }
-            return forwardPosition;
+            return targetPosition;
+        };
+        World.prototype.getLeftPosition = function (position, direction) {
+            var targetPosition = position.getLeft(direction);
+            switch (direction) {
+                case Direction.NORTH:
+                    if (targetPosition.x < World.MIN_X) {
+                        targetPosition.x = World.MAX_X;
+                    }
+                    break;
+                case Direction.EAST:
+                    if (targetPosition.y < World.MIN_Y) {
+                        targetPosition.y = World.MAX_Y;
+                    }
+                    break;
+                case Direction.SOUTH:
+                    if (World.MAX_X < targetPosition.x) {
+                        targetPosition.x = World.MIN_X;
+                    }
+                    break;
+                case Direction.WEST:
+                    if (World.MAX_Y < targetPosition.y) {
+                        targetPosition.y = World.MIN_Y;
+                    }
+                    break;
+            }
+            return targetPosition;
+        };
+        World.prototype.getRightPosition = function (position, direction) {
+            var targetPosition = position.getRight(direction);
+            switch (direction) {
+                case Direction.NORTH:
+                    if (World.MAX_X < targetPosition.x) {
+                        targetPosition.x = World.MIN_X;
+                    }
+                    break;
+                case Direction.EAST:
+                    if (World.MAX_Y < targetPosition.y) {
+                        targetPosition.y = World.MIN_Y;
+                    }
+                    break;
+                case Direction.SOUTH:
+                    if (targetPosition.x < World.MIN_X) {
+                        targetPosition.x = World.MAX_X;
+                    }
+                    break;
+                case Direction.WEST:
+                    if (targetPosition.y < World.MIN_Y) {
+                        targetPosition.y = World.MAX_Y;
+                    }
+                    break;
+            }
+            return targetPosition;
         };
         World.MAX_X = 7;
         World.MIN_X = 0;
@@ -591,10 +661,7 @@ var appVm = new Vue({
             var target = this.world.getForwardCell(this.position, this.direction.value);
             switch (target.field) {
                 case Field.WALL:
-                    this.addMessage('壁にぶつかった!');
-                    this.users.forEach(function (x) {
-                        x.life.sub(dice());
-                    });
+                    this.addMessage('目の前には壁. (どうやっても壊せそうにない)');
                     break;
                 case Field.BLOCK:
                     var targetName = target.block.name;
@@ -669,12 +736,39 @@ var appVm = new Vue({
             this.after();
         },
         moveLeft: function () {
-            this.addMessage('左へは動けない.');
+            var target = this.world.getLeftCell(this.position, this.direction.value);
+            switch (target.field) {
+                case Field.WALL:
+                case Field.BLOCK:
+                    this.addMessage('何かがあって通れない.');
+                    break;
+                case Field.FLAT:
+                case Field.GOAL:
+                    this.addMessage('左へ移動した.');
+                    var forwardPosition = this.world.getLeftPosition(this.position, this.direction.value);
+                    this.position = forwardPosition;
+                    this.randomEvent();
+                    this.afterAction();
+                    break;
+            }
             this.after();
         },
         moveRight: function () {
-            this.addMessage('右へは動けない.');
-            this.after();
+            var target = this.world.getRightCell(this.position, this.direction.value);
+            switch (target.field) {
+                case Field.WALL:
+                case Field.BLOCK:
+                    this.addMessage('何かがあって通れない.');
+                    break;
+                case Field.FLAT:
+                case Field.GOAL:
+                    this.addMessage('右へ移動した.');
+                    var forwardPosition = this.world.getRightPosition(this.position, this.direction.value);
+                    this.position = forwardPosition;
+                    this.randomEvent();
+                    this.afterAction();
+                    break;
+            }
         },
         afterAction: function () {
             var addMessage = this.addMessage;

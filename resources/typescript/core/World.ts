@@ -83,37 +83,105 @@ module core {
         }
 
         public getForwardCell(position: core.Position, direction: Direction): Cell {
-            var forwardPosition = this.getForwardPosition(position, direction)
+            var targetPosition = this.getForwardPosition(position, direction)
 
-            return this.fields[forwardPosition.y][forwardPosition.x]
+            return this.fields[targetPosition.y][targetPosition.x]
+        }
+
+        public getLeftCell(position: core.Position, direction: Direction): Cell {
+            var targetPosition = this.getLeftPosition(position, direction)
+
+            return this.fields[targetPosition.y][targetPosition.x]
+        }
+
+        public getRightCell(position: core.Position, direction: Direction): Cell {
+            var targetPosition = this.getRightPosition(position, direction)
+
+            return this.fields[targetPosition.y][targetPosition.x]
         }
 
         public getForwardPosition(position: core.Position, direction: Direction): core.Position {
-            var forwardPosition = position.getForward(direction)
+            var targetPosition = position.getForward(direction)
             switch (direction) {
                 case Direction.NORTH:
-                    if (forwardPosition.y < World.MIN_Y) {
-                        forwardPosition.y = World.MAX_Y
+                    if (targetPosition.y < World.MIN_Y) {
+                        targetPosition.y = World.MAX_Y
                     }
                     break
                 case Direction.EAST:
-                    if (World.MAX_X < forwardPosition.x) {
-                        forwardPosition.x = World.MIN_X
+                    if (World.MAX_X < targetPosition.x) {
+                        targetPosition.x = World.MIN_X
                     }
                     break
                 case Direction.SOUTH:
-                    if (World.MAX_Y < forwardPosition.y) {
-                        forwardPosition.y = World.MIN_Y
+                    if (World.MAX_Y < targetPosition.y) {
+                        targetPosition.y = World.MIN_Y
                     }
                     break
                 case Direction.WEST:
-                    if (forwardPosition.x < World.MIN_X) {
-                        forwardPosition.x = World.MAX_X
+                    if (targetPosition.x < World.MIN_X) {
+                        targetPosition.x = World.MAX_X
                     }
                     break
             }
 
-            return forwardPosition
+            return targetPosition
+        }
+
+        public getLeftPosition(position: core.Position, direction: Direction): core.Position {
+            var targetPosition = position.getLeft(direction)
+            switch (direction) {
+                case Direction.NORTH:
+                    if (targetPosition.x < World.MIN_X) {
+                        targetPosition.x = World.MAX_X
+                    }
+                    break
+                case Direction.EAST:
+                    if (targetPosition.y < World.MIN_Y) {
+                        targetPosition.y = World.MAX_Y
+                    }
+                    break
+                case Direction.SOUTH:
+                    if (World.MAX_X < targetPosition.x) {
+                        targetPosition.x = World.MIN_X
+                    }
+                    break
+                case Direction.WEST:
+                    if (World.MAX_Y < targetPosition.y) {
+                        targetPosition.y = World.MIN_Y
+                    }
+                    break
+            }
+
+            return targetPosition
+        }
+
+        public getRightPosition(position: core.Position, direction: Direction): core.Position {
+            var targetPosition = position.getRight(direction)
+            switch (direction) {
+                case Direction.NORTH:
+                    if (World.MAX_X < targetPosition.x) {
+                        targetPosition.x = World.MIN_X
+                    }
+                    break
+                case Direction.EAST:
+                    if (World.MAX_Y < targetPosition.y) {
+                        targetPosition.y = World.MIN_Y
+                    }
+                    break
+                case Direction.SOUTH:
+                    if (targetPosition.x < World.MIN_X) {
+                        targetPosition.x = World.MAX_X
+                    }
+                    break
+                case Direction.WEST:
+                    if (targetPosition.y < World.MIN_Y) {
+                        targetPosition.y = World.MAX_Y
+                    }
+                    break
+            }
+
+            return targetPosition
         }
     }
 }

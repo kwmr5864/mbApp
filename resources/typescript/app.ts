@@ -146,10 +146,7 @@ var appVm = new Vue({
             var target = this.world.getForwardCell(this.position, this.direction.value)
             switch (target.field) {
                 case Field.WALL:
-                    this.addMessage('壁にぶつかった!')
-                    this.users.forEach(function (x) {
-                        x.life.sub(dice())
-                    })
+                    this.addMessage('目の前には壁. (どうやっても壊せそうにない)')
                     break
                 case Field.BLOCK:
                     var targetName = target.block.name
@@ -224,12 +221,39 @@ var appVm = new Vue({
             this.after()
         },
         moveLeft: function () {
-            this.addMessage('左へは動けない.')
+            var target = this.world.getLeftCell(this.position, this.direction.value)
+            switch (target.field) {
+                case Field.WALL:
+                case Field.BLOCK:
+                    this.addMessage('何かがあって通れない.')
+                    break
+                case Field.FLAT:
+                case Field.GOAL:
+                    this.addMessage('左へ移動した.')
+                    var forwardPosition = this.world.getLeftPosition(this.position, this.direction.value)
+                    this.position = forwardPosition
+                    this.randomEvent()
+                    this.afterAction()
+                    break
+            }
             this.after()
         },
         moveRight: function () {
-            this.addMessage('右へは動けない.')
-            this.after()
+            var target = this.world.getRightCell(this.position, this.direction.value)
+            switch (target.field) {
+                case Field.WALL:
+                case Field.BLOCK:
+                    this.addMessage('何かがあって通れない.')
+                    break
+                case Field.FLAT:
+                case Field.GOAL:
+                    this.addMessage('右へ移動した.')
+                    var forwardPosition = this.world.getRightPosition(this.position, this.direction.value)
+                    this.position = forwardPosition
+                    this.randomEvent()
+                    this.afterAction()
+                    break
+            }
         },
         afterAction: function() {
             var addMessage = this.addMessage
