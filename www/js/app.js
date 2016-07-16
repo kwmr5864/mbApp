@@ -272,7 +272,8 @@ var core;
     var Cell = core.Cell;
     var Item = entities.Item;
     var World = (function () {
-        function World() {
+        function World(name) {
+            this.name = name;
         }
         World.prototype.make = function () {
             this.fields = new Array(World.MAX_Y + 1);
@@ -625,7 +626,7 @@ var appVm = new Vue({
             display: '',
             enable: false
         },
-        world: new core.World(),
+        world: new core.World('迷宮 地下1階'),
         position: new core.Position(utils.random(World.MAX_Y), utils.random(World.MAX_X))
     },
     methods: {

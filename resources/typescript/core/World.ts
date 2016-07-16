@@ -26,6 +26,8 @@ module core {
 
         public fields: Cell[][]
 
+        constructor(public name: string) {}
+
         public make() {
             this.fields = new Array(World.MAX_Y + 1)
             for (var i = 0; i <= World.MAX_Y; i++) {
