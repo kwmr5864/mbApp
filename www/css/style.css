@@ -19,6 +19,16 @@
 [v-cloak] {
   display: none; }
 
+#app {
+  background-color: ghostwhite; }
+  #app .inverse {
+    color: white;
+    background-color: black; }
+  #app .danger {
+    color: red; }
+  #app .success {
+    color: green; }
+
 #search > .mdl-grid {
   padding: 0; }
   #search > .mdl-grid > .mdl-cell {

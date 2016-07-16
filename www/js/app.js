@@ -23,6 +23,16 @@ var enums;
     })(enums.Direction || (enums.Direction = {}));
     var Direction = enums.Direction;
 })(enums || (enums = {}));
+var enums;
+(function (enums) {
+    (function (EmphasisColor) {
+        EmphasisColor[EmphasisColor["DEFAULT"] = 1] = "DEFAULT";
+        EmphasisColor[EmphasisColor["DANGER"] = 2] = "DANGER";
+        EmphasisColor[EmphasisColor["SUCCESS"] = 3] = "SUCCESS";
+        EmphasisColor[EmphasisColor["INVERSE"] = 4] = "INVERSE";
+    })(enums.EmphasisColor || (enums.EmphasisColor = {}));
+    var EmphasisColor = enums.EmphasisColor;
+})(enums || (enums = {}));
 var core;
 (function (core) {
     var LimitedValue = (function () {
@@ -593,10 +603,11 @@ var models;
 var Direction = enums.Direction;
 var Field = enums.Field;
 var World = core.World;
+var TargetRange = enums.TargetRange;
+var EmphasisColor = enums.EmphasisColor;
 var random = utils.random;
 var dice = utils.dice;
 var Trap = entities.Trap;
-var TargetRange = enums.TargetRange;
 var Users = models.Users;
 var appVm = new Vue({
     el: '#app',
@@ -622,7 +633,7 @@ var appVm = new Vue({
                 var user = new entities.User(this.txt);
                 models.Users.add(user);
                 this.users = models.Users.find();
-                this.addMessage(this.txt + "\u3092\u8FFD\u52A0\u3057\u307E\u3057\u305F!");
+                this.addMessage(this.txt + "\u3092\u8FFD\u52A0\u3057\u307E\u3057\u305F!", EmphasisColor.SUCCESS);
                 this.txt = '';
             }
             else {
@@ -667,8 +678,8 @@ var appVm = new Vue({
                     break;
                 default:
                     if (target.treasure != null) {
-                        this.addMessage('宝箱を見つけた!');
-                        this.addMessage(target.treasure.name + "\u3092\u624B\u306B\u5165\u308C\u305F.");
+                        this.addMessage('宝箱を見つけた!', EmphasisColor.INVERSE);
+                        this.addMessage(target.treasure.name + "\u3092\u624B\u306B\u5165\u308C\u305F.", EmphasisColor.SUCCESS);
                         target.treasure = null;
                     }
                     else {
@@ -695,7 +706,7 @@ var appVm = new Vue({
                     if (target.block.life.current < 1) {
                         this.addMessage(targetName + "\u3092\u7834\u58CA.");
                         if (0 < target.block.items.length) {
-                            this.addMessage('目の前に何かが落ちた.');
+                            this.addMessage('目の前に何かが落ちた.', EmphasisColor.SUCCESS);
                             target.treasure = target.block.items[0];
                         }
                         target.field = Field.FLAT;
@@ -840,7 +851,7 @@ var appVm = new Vue({
                 var user = this.users[i];
                 user.flow();
                 if (user.life.current < 1) {
-                    this.addMessage(user.name + "\u306F\u529B\u5C3D\u304D\u305F...");
+                    this.addMessage(user.name + "\u306F\u529B\u5C3D\u304D\u305F...", EmphasisColor.DANGER);
                     models.Users.delete(user.name);
                     this.users = models.Users.find();
                 }
@@ -866,7 +877,7 @@ var appVm = new Vue({
                     this.addUserMessage('油断するなよ.');
                     break;
                 case 4:
-                    this.addMessage('食糧を拾った!');
+                    this.addMessage('食糧を拾った!', EmphasisColor.SUCCESS);
                     this.users.forEach(function (x) {
                         var food = dice(2);
                         x.food.add(food);
@@ -875,13 +886,13 @@ var appVm = new Vue({
                 case 5:
                     var trap = Trap.random();
                     if (trap != null) {
-                        this.addMessage("\u30C8\u30E9\u30C3\u30D7\u3060! " + trap.name + "!");
+                        this.addMessage("\u30C8\u30E9\u30C3\u30D7\u3060! " + trap.name + "!", EmphasisColor.INVERSE);
                         if (trap.range == TargetRange.ALL) {
                             var addMessage = this.addMessage;
                             this.users.forEach(function (x) {
                                 var damage = trap.operate();
                                 x.life.sub(damage);
-                                addMessage(x.name + "\u306F " + damage + " \u306E\u88AB\u5BB3\u3092\u53D7\u3051\u305F.");
+                                addMessage(x.name + "\u306F " + damage + " \u306E\u88AB\u5BB3\u3092\u53D7\u3051\u305F.", EmphasisColor.DANGER);
                             });
                         }
                         else {
@@ -889,7 +900,7 @@ var appVm = new Vue({
                             var userIndex = random(this.users.length) - 1;
                             var user = this.users[userIndex];
                             user.life.sub(damage);
-                            this.addMessage(user.name + "\u306F " + damage + " \u306E\u88AB\u5BB3\u3092\u53D7\u3051\u305F.");
+                            this.addMessage(user.name + "\u306F " + damage + " \u306E\u88AB\u5BB3\u3092\u53D7\u3051\u305F.", EmphasisColor.DANGER);
                         }
                     }
                     else {
@@ -901,12 +912,28 @@ var appVm = new Vue({
                     break;
             }
         },
-        addMessage: function (message) {
+        addMessage: function (message, emphasis) {
+            if (emphasis === void 0) { emphasis = EmphasisColor.DEFAULT; }
             this.topMessage = "\u4F4D\u7F6E: (" + this.position.x + "," + this.position.y + ")";
             if (4 < this.mainMessages.length) {
                 this.mainMessages.shift();
             }
-            this.mainMessages.push({ text: message });
+            var em = {};
+            switch (emphasis) {
+                case EmphasisColor.DANGER:
+                    em['danger'] = true;
+                    break;
+                case EmphasisColor.SUCCESS:
+                    em['success'] = true;
+                    break;
+                case EmphasisColor.INVERSE:
+                    em['inverse'] = true;
+                    break;
+            }
+            this.mainMessages.push({
+                text: message,
+                em: em
+            });
         },
         addUserMessage: function (message) {
             var userIndex = random(this.users.length) - 1;
@@ -932,7 +959,7 @@ var appVm = new Vue({
         },
     },
     created: function () {
-        this.addMessage('mbAppの世界にようこそ!');
+        this.addMessage('mbAppの世界にようこそ!', EmphasisColor.INVERSE);
         this.addMessage('メンバを4人追加してチームを作ってください!');
         this.direction.enable = 0 < this.users.length;
         this.world.make();

@@ -21,7 +21,18 @@
 }
 
 #app {
+  background-color: ghostwhite;
   .page-content {
+  }
+  .inverse {
+    color: white;
+    background-color: black;
+  }
+  .danger {
+    color: red;
+  }
+  .success {
+    color: green;
   }
 }
 

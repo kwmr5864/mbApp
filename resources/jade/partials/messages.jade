@@ -4,4 +4,4 @@
         template(v-if="direction.enable")
             span 方向:
             +material-icon('{{ direction.display }}')
-    p.mainMessages(v-for="x in mainMessages") {{ x.text }}
+    p.mainMessages(v-for="x in mainMessages", ':class'="x.em") {{ x.text }}
