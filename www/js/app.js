@@ -52,6 +52,9 @@ var core;
                 this.current = 0;
             }
         };
+        LimitedValue.prototype.isMax = function () {
+            return this.max <= this.current;
+        };
         return LimitedValue;
     }());
     core.LimitedValue = LimitedValue;
@@ -609,6 +612,7 @@ var random = utils.random;
 var dice = utils.dice;
 var Trap = entities.Trap;
 var Users = models.Users;
+var User = entities.User;
 var appVm = new Vue({
     el: '#app',
     data: {
@@ -657,11 +661,15 @@ var appVm = new Vue({
         },
         rest: function () {
             this.addMessage('休憩中...');
-            this.users.forEach(function (x) {
-                if (0 < x.food.current) {
-                    x.life.add(dice());
+            for (var i = 0; i < this.users.length; i++) {
+                var user = this.users[i];
+                if (0 < user.food.current) {
+                    user.life.add(dice());
                 }
-            });
+                if (user.life.isMax()) {
+                    this.addUserMessage('体調は万全だ!', user);
+                }
+            }
             this.afterAction();
             this.after();
         },
@@ -945,9 +953,13 @@ var appVm = new Vue({
                 em: em
             });
         },
-        addUserMessage: function (message) {
-            var userIndex = random(this.users.length) - 1;
-            this.addMessage(this.users[userIndex].name + "\uFF1A" + message);
+        addUserMessage: function (message, user) {
+            if (user === void 0) { user = null; }
+            if (user == null) {
+                var userIndex = random(this.users.length) - 1;
+                user = this.users[userIndex];
+            }
+            this.addMessage(user.name + "\uFF1A" + message);
         },
         getDirectionDisplay: function () {
             var value = '';

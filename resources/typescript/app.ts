@@ -27,6 +27,7 @@ import random = utils.random
 import dice = utils.dice
 import Trap = entities.Trap
 import Users = models.Users
+import User = entities.User;
 
 var appVm = new Vue({
     el: '#app',
@@ -74,11 +75,15 @@ var appVm = new Vue({
         },
         rest: function () {
             this.addMessage('休憩中...')
-            this.users.forEach(function (x) {
-                if (0 < x.food.current) {
-                    x.life.add(dice())
+            for (var i = 0; i < this.users.length; i++) {
+                var user = this.users[i]
+                if (0 < user.food.current) {
+                    user.life.add(dice())
                 }
-            })
+                if (user.life.isMax()) {
+                    this.addUserMessage('体調は万全だ!', user)
+                }
+            }
             this.afterAction()
             this.after()
         },
@@ -358,9 +363,12 @@ var appVm = new Vue({
                 em: em
             });
         },
-        addUserMessage: function (message: string) {
-            var userIndex = random(this.users.length) - 1
-            this.addMessage(`${this.users[userIndex].name}：${message}`)
+        addUserMessage: function (message: string, user: User = null) {
+            if (user == null) {
+                var userIndex = random(this.users.length) - 1
+                user = this.users[userIndex]
+            }
+            this.addMessage(`${user.name}：${message}`)
         },
         getDirectionDisplay: function() {
             var value = ''

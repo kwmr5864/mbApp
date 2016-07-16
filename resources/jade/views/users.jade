@@ -8,8 +8,8 @@ ul#users.mdl-list.mdl-list__item--three-line
             span.name {{ x.name }}
             span.mdl-list__item-text-body
                 +material-icon('favorite_border')
-                span {{ x.life.current }} / {{ x.life.max }}
+                span {{ x.life.current }}
                 +material-icon('restaurant_menu')
-                span {{ x.food.current }} / {{ x.food.max }}
+                span {{ x.food.current }}
         span.mdl-list__item-secondary-content
             +mdl-fab-button-mini('clear', 'removeUser(x.name)')
