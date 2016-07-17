@@ -41,7 +41,7 @@ var appVm = new Vue({
             display: '',
             enable: false
         },
-        world: new core.World('迷宮 地下1階'),
+        world: new core.World(),
         position: new core.Position(utils.random(World.MAX_Y), utils.random(World.MAX_X))
     },
     methods: {

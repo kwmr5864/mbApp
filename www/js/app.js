@@ -236,6 +236,7 @@ var entities;
 var entities;
 (function (entities) {
     var ItemType = enums.ItemType;
+    var dice = utils.dice;
     var Item = (function (_super) {
         __extends(Item, _super);
         function Item(name, itemType) {
@@ -273,7 +274,12 @@ var core;
     var Item = entities.Item;
     var World = (function () {
         function World(name) {
+            if (name === void 0) { name = ''; }
             this.name = name;
+            if (name == '') {
+                faker.locale = 'ja';
+                this.name = "\u30A8\u30EA\u30A2\u300E" + faker.address.streetName() + "\u300F";
+            }
         }
         World.prototype.make = function () {
             this.fields = new Array(World.MAX_Y + 1);
@@ -626,7 +632,7 @@ var appVm = new Vue({
             display: '',
             enable: false
         },
-        world: new core.World('迷宮 地下1階'),
+        world: new core.World(),
         position: new core.Position(utils.random(World.MAX_Y), utils.random(World.MAX_X))
     },
     methods: {

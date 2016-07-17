@@ -3,6 +3,7 @@
 
 module entities {
     import ItemType = enums.ItemType
+    import dice = utils.dice
     export class Item extends LifeObject {
         constructor(public name: string, public itemType: ItemType) {
             super(name, 1)
