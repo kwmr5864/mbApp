@@ -62,9 +62,10 @@ var core;
 var enums;
 (function (enums) {
     (function (ItemType) {
-        ItemType[ItemType["OINTMENT"] = 1] = "OINTMENT";
-        ItemType[ItemType["MEAT"] = 2] = "MEAT";
-        ItemType[ItemType["PAPER"] = 3] = "PAPER";
+        ItemType[ItemType["TREASURE"] = 1] = "TREASURE";
+        ItemType[ItemType["OINTMENT"] = 2] = "OINTMENT";
+        ItemType[ItemType["MEAT"] = 3] = "MEAT";
+        ItemType[ItemType["PAPER"] = 4] = "PAPER";
     })(enums.ItemType || (enums.ItemType = {}));
     var ItemType = enums.ItemType;
 })(enums || (enums = {}));
@@ -94,6 +95,55 @@ var entities;
         return LifeObject;
     }());
     entities.LifeObject = LifeObject;
+})(entities || (entities = {}));
+var utils;
+(function (utils) {
+    function dice(count) {
+        if (count === void 0) { count = 1; }
+        var result = 0;
+        for (var i = 0; i < count; i++) {
+            result += random(6);
+        }
+        return result;
+    }
+    utils.dice = dice;
+    function random(max) {
+        var result = Math.ceil(Math.random() * max);
+        return result;
+    }
+    utils.random = random;
+})(utils || (utils = {}));
+var entities;
+(function (entities) {
+    var ItemType = enums.ItemType;
+    var dice = utils.dice;
+    var Item = (function (_super) {
+        __extends(Item, _super);
+        function Item(name, itemType) {
+            _super.call(this, name, 1);
+            this.name = name;
+            this.itemType = itemType;
+        }
+        Item.getRandom = function () {
+            var item = null;
+            switch (dice()) {
+                case 1:
+                case 2:
+                    item = new Item('軟膏', ItemType.OINTMENT);
+                    break;
+                case 3:
+                case 4:
+                    item = new Item('肉', ItemType.MEAT);
+                    break;
+                case 5:
+                    item = new Item('紙切れ', ItemType.PAPER);
+                    break;
+            }
+            return item;
+        };
+        return Item;
+    }(entities.LifeObject));
+    entities.Item = Item;
 })(entities || (entities = {}));
 var core;
 (function (core) {
@@ -180,23 +230,6 @@ var core;
     }());
     core.Position = Position;
 })(core || (core = {}));
-var utils;
-(function (utils) {
-    function dice(count) {
-        if (count === void 0) { count = 1; }
-        var result = 0;
-        for (var i = 0; i < count; i++) {
-            result += random(6);
-        }
-        return result;
-    }
-    utils.dice = dice;
-    function random(max) {
-        var result = Math.ceil(Math.random() * max);
-        return result;
-    }
-    utils.random = random;
-})(utils || (utils = {}));
 var entities;
 (function (entities) {
     var dice = utils.dice;
@@ -250,43 +283,12 @@ var entities;
     }(Block));
     entities.Tussock = Tussock;
 })(entities || (entities = {}));
-var entities;
-(function (entities) {
-    var ItemType = enums.ItemType;
-    var dice = utils.dice;
-    var Item = (function (_super) {
-        __extends(Item, _super);
-        function Item(name, itemType) {
-            _super.call(this, name, 1);
-            this.name = name;
-            this.itemType = itemType;
-        }
-        Item.getRandom = function () {
-            var item = null;
-            switch (dice()) {
-                case 1:
-                case 2:
-                    item = new Item('軟膏', ItemType.OINTMENT);
-                    break;
-                case 3:
-                case 4:
-                    item = new Item('肉', ItemType.MEAT);
-                    break;
-                case 5:
-                    item = new Item('紙切れ', ItemType.PAPER);
-                    break;
-            }
-            return item;
-        };
-        return Item;
-    }(entities.LifeObject));
-    entities.Item = Item;
-})(entities || (entities = {}));
 var core;
 (function (core) {
     var dice = utils.dice;
     var Direction = enums.Direction;
     var Field = enums.Field;
+    var ItemType = enums.ItemType;
     var Cell = core.Cell;
     var Item = entities.Item;
     var World = (function () {
@@ -321,15 +323,12 @@ var core;
                                     break;
                                 case 4:
                                     row[j] = new Cell(Field.BLOCK);
-                                    row[j].block = new entities.TreasureBox();
-                                    row[j].block.addRandomItem();
-                                    break;
-                                case 5:
-                                    row[j] = new Cell(Field.BLOCK);
                                     row[j].block = new entities.Tussock();
                                     break;
-                                case 6:
-                                    row[j] = new Cell(Field.FLAT);
+                                default:
+                                    row[j] = new Cell(Field.BLOCK);
+                                    row[j].block = new entities.TreasureBox();
+                                    row[j].block.addRandomItem();
                                     break;
                             }
                             switch (dice()) {
@@ -349,10 +348,25 @@ var core;
                 }
                 this.fields[i] = row;
             }
-            var endX = utils.random(World.MAX_X);
-            var endY = utils.random(World.MAX_Y);
-            this.fields[endY][endX].field = Field.GOAL;
-            this.fields[endY][endX].block = null;
+            var goalX = utils.random(World.MAX_X);
+            var goalY = utils.random(World.MAX_Y);
+            var goalCell = this.fields[goalY][goalX];
+            goalCell.field = Field.GOAL;
+            goalCell.treasure = null;
+            goalCell.block = null;
+            var ok = false;
+            while (!ok) {
+                var treasureX = utils.random(World.MAX_X);
+                var treasureY = utils.random(World.MAX_Y);
+                if (treasureX != goalX && treasureY != goalY) {
+                    var treasureCell = this.fields[treasureY][treasureX];
+                    treasureCell.field = Field.FLAT;
+                    var treasure = new Item("\u79D8\u5B9D\u300C" + faker.commerce.productName() + "\u300D", ItemType.TREASURE);
+                    treasureCell.treasure = treasure;
+                    treasureCell.block = null;
+                    ok = true;
+                }
+            }
         };
         World.prototype.getForwardCell = function (position, direction) {
             var targetPosition = this.getForwardPosition(position, direction);
@@ -638,6 +652,7 @@ var dice = utils.dice;
 var Trap = entities.Trap;
 var Users = models.Users;
 var User = entities.User;
+var ItemType = enums.ItemType;
 var appVm = new Vue({
     el: '#app',
     data: {
@@ -730,10 +745,14 @@ var appVm = new Vue({
                     if (target.treasure != null) {
                         this.addMessage('宝箱を見つけた!', EmphasisColor.INVERSE);
                         this.addMessage(target.treasure.name + "\u3092\u624B\u306B\u5165\u308C\u305F.", EmphasisColor.SUCCESS);
+                        if (target.treasure.itemType == ItemType.TREASURE) {
+                            this.hasTreasure = true;
+                            this.addUserMessage("\u91CE\u90CE\u3069\u3082\u5F15\u304D\u4E0A\u3052\u308B\u305E! \u51FA\u53E3\u3092\u63A2\u305B!");
+                        }
                         target.treasure = null;
                     }
                     else {
-                        this.addMessage('ここに宝はないようだ.');
+                        this.addMessage('何もない.');
                     }
                     break;
             }
@@ -798,7 +817,8 @@ var appVm = new Vue({
                     break;
                 case Field.FLAT:
                 case Field.GOAL:
-                    this.addMessage('前へ進んだ.');
+                    var forwardCell = this.world.getForwardCell(this.position, this.direction.value);
+                    this.addMessage("\u524D\u3078\u9032\u3093\u3060. " + (forwardCell.treasure != null ? '足元に何かある.' : ''));
                     var forwardPosition = this.world.getForwardPosition(this.position, this.direction.value);
                     this.position = forwardPosition;
                     this.randomEvent();

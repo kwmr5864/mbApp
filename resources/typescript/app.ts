@@ -28,6 +28,7 @@ import dice = utils.dice
 import Trap = entities.Trap
 import Users = models.Users
 import User = entities.User
+import ItemType = enums.ItemType;
 
 var appVm = new Vue({
     el: '#app',
@@ -118,9 +119,13 @@ var appVm = new Vue({
                     if (target.treasure != null) {
                         this.addMessage('宝箱を見つけた!', EmphasisColor.INVERSE)
                         this.addMessage(`${target.treasure.name}を手に入れた.`, EmphasisColor.SUCCESS)
+                        if (target.treasure.itemType == ItemType.TREASURE) {
+                            this.hasTreasure = true
+                            this.addUserMessage(`野郎ども引き上げるぞ! 出口を探せ!`)
+                        }
                         target.treasure = null
                     } else {
-                        this.addMessage('ここに宝はないようだ.')
+                        this.addMessage('何もない.')
                     }
                     break
             }
@@ -185,7 +190,8 @@ var appVm = new Vue({
                     break
                 case Field.FLAT:
                 case Field.GOAL:
-                    this.addMessage('前へ進んだ.')
+                    var forwardCell = this.world.getForwardCell(this.position, this.direction.value)
+                    this.addMessage(`前へ進んだ. ${forwardCell.treasure != null ? '足元に何かある.' : ''}`)
                     var forwardPosition = this.world.getForwardPosition(this.position, this.direction.value)
                     this.position = forwardPosition
                     this.randomEvent()
