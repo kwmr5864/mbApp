@@ -46,6 +46,7 @@ module core {
                             switch (dice()) {
                                 case 1:
                                     row[j] = new Cell(Field.WALL)
+                                    row[j].block = new entities.Wall()
                                     break
                                 case 2:
                                     row[j] = new Cell(Field.BLOCK)

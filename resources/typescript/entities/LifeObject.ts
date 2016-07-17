@@ -8,7 +8,7 @@ module entities {
         public life: LimitedValue
         public items: Item[] = []
         public itemLimit: number = 3
-        constructor(public name: string, private _life: number = 100) {
+        constructor(public name: string, protected _life: number = 100) {
             this.life = new LimitedValue(_life)
         }
         public addItem(item: Item) {
