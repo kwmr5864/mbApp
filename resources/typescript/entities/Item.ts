@@ -1,3 +1,4 @@
+///<reference path="../utils/common.ts"/>
 ///<reference path="../enums/ItemType.ts"/>
 ///<reference path="./LifeObject.ts"/>
 

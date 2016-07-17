@@ -26,8 +26,12 @@
     background-color: black; }
   #app .danger {
     color: red; }
+  #app .alert {
+    color: orange; }
   #app .success {
     color: green; }
+  #app .info {
+    color: purple; }
 
 #search > .mdl-grid {
   padding: 0; }

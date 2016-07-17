@@ -1,6 +1,7 @@
 module enums {
     export enum ItemType {
-        OINTMENT = 1,
+        TREASURE = 1,
+        OINTMENT,
         MEAT,
         PAPER,
     }

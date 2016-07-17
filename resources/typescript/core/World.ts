@@ -18,7 +18,7 @@ module core {
     import Field = enums.Field
     import ItemType = enums.ItemType
     import Cell = core.Cell
-    import Item = entities.Item;
+    import Item = entities.Item
 
     export class World {
         public static MAX_X = 7
@@ -58,15 +58,12 @@ module core {
                                     break
                                 case 4:
                                     row[j] = new Cell(Field.BLOCK)
-                                    row[j].block = new entities.TreasureBox()
-                                    row[j].block.addRandomItem()
-                                    break
-                                case 5:
-                                    row[j] = new Cell(Field.BLOCK)
                                     row[j].block = new entities.Tussock()
                                     break
-                                case 6:
-                                    row[j] = new Cell(Field.FLAT)
+                                default:
+                                    row[j] = new Cell(Field.BLOCK)
+                                    row[j].block = new entities.TreasureBox()
+                                    row[j].block.addRandomItem()
                                     break
                             }
                             switch (dice()) {
@@ -86,10 +83,26 @@ module core {
                 }
                 this.fields[i] = row
             }
-            let endX = utils.random(World.MAX_X)
-            let endY = utils.random(World.MAX_Y)
-            this.fields[endY][endX].field = Field.GOAL
-            this.fields[endY][endX].block = null
+            let goalX = utils.random(World.MAX_X)
+            let goalY = utils.random(World.MAX_Y)
+            var goalCell = this.fields[goalY][goalX]
+            goalCell.field = Field.GOAL
+            goalCell.treasure = null
+            goalCell.block = null
+
+            var ok = false
+            while (!ok) {
+                var treasureX = utils.random(World.MAX_X)
+                var treasureY = utils.random(World.MAX_Y)
+                if (treasureX != goalX && treasureY != goalY) {
+                    var treasureCell = this.fields[treasureY][treasureX]
+                    treasureCell.field = Field.FLAT
+                    var treasure = new Item(`秘宝「${faker.commerce.productName()}」`, ItemType.TREASURE)
+                    treasureCell.treasure = treasure
+                    treasureCell.block = null
+                    ok = true
+                }
+            }
         }
 
         public getForwardCell(position: core.Position, direction: Direction): Cell {

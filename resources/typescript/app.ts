@@ -28,6 +28,7 @@ import dice = utils.dice
 import Trap = entities.Trap
 import Users = models.Users
 import User = entities.User
+import ItemType = enums.ItemType;
 
 var appVm = new Vue({
     el: '#app',
@@ -42,6 +43,7 @@ var appVm = new Vue({
             enable: false
         },
         world: new core.World(),
+        hasTreasure: false,
         position: new core.Position(utils.random(World.MAX_Y), utils.random(World.MAX_X))
     },
     methods: {
@@ -101,20 +103,29 @@ var appVm = new Vue({
             var target = this.world.fields[this.position.y][this.position.x]
             switch (target.field) {
                 case Field.GOAL:
-                    this.addUserMessage('ついに宝を見つけたぞー!!')
-                    this.addMessage('＊ おめでとう ＊', EmphasisColor.INVERSE)
-                    this.addMessage('こうして一行は解散した...')
-                    models.Users.clear()
-                    this.users = models.Users.find()
-                    this.world.make()
+                    if (this.hasTreasure) {
+                        this.addMessage(`${this.world.name}を脱出した.`)
+                        this.addMessage('＊ おめでとう ＊', EmphasisColor.INVERSE)
+                        this.addMessage('こうして一行は宝を手に無事生還した. そして宴の後...')
+                        this.addMessage('彼らは各々の次なる冒険を求め旅立っていったのだった.')
+                        models.Users.clear()
+                        this.users = models.Users.find()
+                        this.world.make()
+                    } else {
+                        this.addUserMessage('出口だ. 宝を見つけたらここから脱出するぞ.')
+                    }
                     break
                 default:
                     if (target.treasure != null) {
                         this.addMessage('宝箱を見つけた!', EmphasisColor.INVERSE)
                         this.addMessage(`${target.treasure.name}を手に入れた.`, EmphasisColor.SUCCESS)
+                        if (target.treasure.itemType == ItemType.TREASURE) {
+                            this.hasTreasure = true
+                            this.addUserMessage(`野郎ども引き上げるぞ! 出口を探せ!`)
+                        }
                         target.treasure = null
                     } else {
-                        this.addMessage('ここに宝はないようだ.')
+                        this.addMessage('何もない.')
                     }
                     break
             }
@@ -133,7 +144,7 @@ var appVm = new Vue({
                     this.users.forEach(function (x) {
                         var damage = dice()
                         target.block.life.sub(damage)
-                        addMessage(`${x.name}は${targetName}を攻撃し ${damage} の損傷を与えた.`)
+                        addMessage(`${x.name}は${targetName}を攻撃し ${damage} の損傷を与えた.`, EmphasisColor.INFO)
                     })
                     if (target.block.life.current < 1) {
                         this.addMessage(`${targetName}を破壊.`)
@@ -179,7 +190,8 @@ var appVm = new Vue({
                     break
                 case Field.FLAT:
                 case Field.GOAL:
-                    this.addMessage('前へ進んだ.')
+                    var forwardCell = this.world.getForwardCell(this.position, this.direction.value)
+                    this.addMessage(`前へ進んだ. ${forwardCell.treasure != null ? '足元に何かある.' : ''}`)
                     var forwardPosition = this.world.getForwardPosition(this.position, this.direction.value)
                     this.position = forwardPosition
                     this.randomEvent()
@@ -357,8 +369,14 @@ var appVm = new Vue({
                 case EmphasisColor.DANGER:
                     em['danger'] = true
                     break
+                case EmphasisColor.ALERT:
+                    em['alert'] = true
+                    break
                 case EmphasisColor.SUCCESS:
                     em['success'] = true
+                    break
+                case EmphasisColor.INFO:
+                    em['info'] = true
                     break
                 case EmphasisColor.INVERSE:
                     em['inverse'] = true
