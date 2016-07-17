@@ -11,6 +11,8 @@ module models {
                 user.life.max = row.life.max
                 user.food.current = row.food.current
                 user.food.max = row.food.max
+                user.water.current = row.water.current
+                user.water.max = row.water.max
                 return user
             }) : []
 

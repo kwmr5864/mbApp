@@ -21,9 +21,9 @@ module core {
     import Item = entities.Item
 
     export class World {
-        public static MAX_X = 7
+        public static MAX_X = 9
         public static MIN_X = 0
-        public static MAX_Y = 7
+        public static MAX_Y = 9
         public static MIN_Y = 0
 
         public fields: Cell[][]

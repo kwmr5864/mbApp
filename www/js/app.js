@@ -460,9 +460,9 @@ var core;
             }
             return targetPosition;
         };
-        World.MAX_X = 7;
+        World.MAX_X = 9;
         World.MIN_X = 0;
-        World.MAX_Y = 7;
+        World.MAX_Y = 9;
         World.MIN_Y = 0;
         return World;
     }());
@@ -478,8 +478,15 @@ var entities;
             _super.call(this, name);
             this.name = name;
             this.food = new LimitedValue(1000);
+            this.water = new LimitedValue(1000);
         }
         User.prototype.flow = function () {
+            if (this.water.current < 1) {
+                this.life.current--;
+            }
+            else {
+                this.water.current--;
+            }
             if (this.food.current < 1) {
                 this.life.current--;
             }
@@ -613,6 +620,8 @@ var models;
                 user.life.max = row.life.max;
                 user.food.current = row.food.current;
                 user.food.max = row.food.max;
+                user.water.current = row.water.current;
+                user.water.max = row.water.max;
                 return user;
             }) : [];
             return users;
