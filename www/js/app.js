@@ -200,13 +200,30 @@ var utils;
 var entities;
 (function (entities) {
     var dice = utils.dice;
+    var Block = (function (_super) {
+        __extends(Block, _super);
+        function Block(_name, _life) {
+            _super.call(this, _name + "\u300C" + faker.lorem.words(1) + "\u300D", _life);
+            this._name = _name;
+            this._life = _life;
+        }
+        return Block;
+    }(entities.LifeObject));
+    var Wall = (function (_super) {
+        __extends(Wall, _super);
+        function Wall() {
+            _super.call(this, '壁', 9999);
+        }
+        return Wall;
+    }(Block));
+    entities.Wall = Wall;
     var Rock = (function (_super) {
         __extends(Rock, _super);
         function Rock() {
             _super.call(this, '岩', 30 + dice());
         }
         return Rock;
-    }(entities.LifeObject));
+    }(Block));
     entities.Rock = Rock;
     var Tree = (function (_super) {
         __extends(Tree, _super);
@@ -214,7 +231,7 @@ var entities;
             _super.call(this, '木', 10 + dice());
         }
         return Tree;
-    }(entities.LifeObject));
+    }(Block));
     entities.Tree = Tree;
     var TreasureBox = (function (_super) {
         __extends(TreasureBox, _super);
@@ -222,7 +239,7 @@ var entities;
             _super.call(this, '木箱', 10 + dice(2));
         }
         return TreasureBox;
-    }(entities.LifeObject));
+    }(Block));
     entities.TreasureBox = TreasureBox;
     var Tussock = (function (_super) {
         __extends(Tussock, _super);
@@ -230,12 +247,13 @@ var entities;
             _super.call(this, '草むら', dice());
         }
         return Tussock;
-    }(entities.LifeObject));
+    }(Block));
     entities.Tussock = Tussock;
 })(entities || (entities = {}));
 var entities;
 (function (entities) {
     var ItemType = enums.ItemType;
+    var dice = utils.dice;
     var Item = (function (_super) {
         __extends(Item, _super);
         function Item(name, itemType) {
@@ -273,7 +291,12 @@ var core;
     var Item = entities.Item;
     var World = (function () {
         function World(name) {
+            if (name === void 0) { name = ''; }
             this.name = name;
+            if (name == '') {
+                faker.locale = 'ja';
+                this.name = "\u30A8\u30EA\u30A2\u300E" + faker.address.streetName() + "\u300F";
+            }
         }
         World.prototype.make = function () {
             this.fields = new Array(World.MAX_Y + 1);
@@ -286,6 +309,7 @@ var core;
                             switch (dice()) {
                                 case 1:
                                     row[j] = new Cell(Field.WALL);
+                                    row[j].block = new entities.Wall();
                                     break;
                                 case 2:
                                     row[j] = new Cell(Field.BLOCK);
@@ -626,7 +650,7 @@ var appVm = new Vue({
             display: '',
             enable: false
         },
-        world: new core.World('迷宮 地下1階'),
+        world: new core.World(),
         position: new core.Position(utils.random(World.MAX_Y), utils.random(World.MAX_X))
     },
     methods: {
@@ -715,6 +739,7 @@ var appVm = new Vue({
                     this.addMessage('空を切った.');
                     break;
                 case Field.BLOCK:
+                case Field.WALL:
                     var targetName = target.block.name;
                     var addMessage = this.addMessage;
                     this.users.forEach(function (x) {
@@ -732,9 +757,6 @@ var appVm = new Vue({
                         target.block = null;
                     }
                     this.afterAction();
-                    break;
-                case Field.WALL:
-                    this.addMessage('壁を蹴った.');
                     break;
             }
             this.afterAction();
@@ -763,11 +785,9 @@ var appVm = new Vue({
             var target = this.world.getForwardCell(this.position, this.direction.value);
             switch (target.field) {
                 case Field.WALL:
-                    this.addMessage('目の前には壁. (どうやっても壊せそうにない)', EmphasisColor.INVERSE);
-                    break;
                 case Field.BLOCK:
                     var targetName = target.block.name;
-                    this.addMessage("\u76EE\u306E\u524D\u306B" + targetName + ". (" + target.block.life.current + " / " + target.block.life.max + ")", EmphasisColor.INVERSE);
+                    this.addMessage("\u76EE\u306E\u524D\u306B" + targetName + ". (" + target.block.life.current + ")", EmphasisColor.INVERSE);
                     break;
                 case Field.FLAT:
                 case Field.GOAL:

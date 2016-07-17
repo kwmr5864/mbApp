@@ -6,6 +6,6 @@ module core {
     export class Cell {
         public block: LifeObject
         public treasure: LifeObject
-        constructor(public field: Field) {}
+        constructor(public field: enums.Field) {}
     }
 }

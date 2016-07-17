@@ -1,3 +1,5 @@
+///<reference path="../typings/faker/faker.d.ts"/>
+
 ///<reference path="../enums/Direction.ts"/>
 ///<reference path="../enums/Field.ts"/>
 ///<reference path="../enums/ItemType.ts"/>
@@ -26,7 +28,12 @@ module core {
 
         public fields: Cell[][]
 
-        constructor(public name: string) {}
+        constructor(public name: string = '') {
+            if (name == '') {
+                faker.locale = 'ja'
+                this.name = `エリア『${faker.address.streetName()}』`
+            }
+        }
 
         public make() {
             this.fields = new Array(World.MAX_Y + 1)
@@ -39,6 +46,7 @@ module core {
                             switch (dice()) {
                                 case 1:
                                     row[j] = new Cell(Field.WALL)
+                                    row[j].block = new entities.Wall()
                                     break
                                 case 2:
                                     row[j] = new Cell(Field.BLOCK)

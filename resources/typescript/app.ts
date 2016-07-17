@@ -41,7 +41,7 @@ var appVm = new Vue({
             display: '',
             enable: false
         },
-        world: new core.World('迷宮 地下1階'),
+        world: new core.World(),
         position: new core.Position(utils.random(World.MAX_Y), utils.random(World.MAX_X))
     },
     methods: {
@@ -127,6 +127,7 @@ var appVm = new Vue({
                     this.addMessage('空を切った.')
                     break
                 case Field.BLOCK:
+                case Field.WALL:
                     var targetName = target.block.name
                     var addMessage = this.addMessage
                     this.users.forEach(function (x) {
@@ -145,9 +146,6 @@ var appVm = new Vue({
                         target.block = null
                     }
                     this.afterAction()
-                    break
-                case Field.WALL:
-                    this.addMessage('壁を蹴った.')
                     break
             }
             this.afterAction()
@@ -175,11 +173,9 @@ var appVm = new Vue({
             var target = this.world.getForwardCell(this.position, this.direction.value)
             switch (target.field) {
                 case Field.WALL:
-                    this.addMessage('目の前には壁. (どうやっても壊せそうにない)', EmphasisColor.INVERSE)
-                    break
                 case Field.BLOCK:
                     var targetName = target.block.name
-                    this.addMessage(`目の前に${targetName}. (${target.block.life.current} / ${target.block.life.max})`, EmphasisColor.INVERSE)
+                    this.addMessage(`目の前に${targetName}. (${target.block.life.current})`, EmphasisColor.INVERSE)
                     break
                 case Field.FLAT:
                 case Field.GOAL:

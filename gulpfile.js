@@ -24,6 +24,7 @@ gulp.task('ts', function () {
         .pipe(typescript({
             out: 'app.js',
             target: 'es5',
+            module: 'commonjs',
             removeComments: true,
             sortOutput: true
         }))

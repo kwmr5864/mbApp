@@ -1,24 +1,36 @@
+///<reference path="../typings/faker/faker.d.ts"/>
+
 ///<reference path="./LifeObject"/>
 ///<reference path="../utils/common.ts"/>
 
 module entities {
     import dice = utils.dice;
-    export class Rock extends LifeObject {
+    abstract class Block extends LifeObject {
+        constructor(private _name: string, protected _life: number) {
+            super(`${_name}「${faker.lorem.words(1)}」`, _life)
+        }
+    }
+    export class Wall extends Block {
+        constructor() {
+            super('壁', 9999)
+        }
+    }
+    export class Rock extends Block {
         constructor() {
             super('岩', 30 + dice())
         }
     }
-    export class Tree extends LifeObject {
+    export class Tree extends Block {
         constructor() {
             super('木', 10 + dice())
         }
     }
-    export class TreasureBox extends LifeObject {
+    export class TreasureBox extends Block {
         constructor() {
             super('木箱', 10 + dice(2))
         }
     }
-    export class Tussock extends LifeObject {
+    export class Tussock extends Block {
         constructor() {
             super('草むら', dice())
         }
