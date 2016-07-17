@@ -42,6 +42,7 @@ var appVm = new Vue({
             enable: false
         },
         world: new core.World(),
+        hasTreasure: false,
         position: new core.Position(utils.random(World.MAX_Y), utils.random(World.MAX_X))
     },
     methods: {
@@ -101,12 +102,17 @@ var appVm = new Vue({
             var target = this.world.fields[this.position.y][this.position.x]
             switch (target.field) {
                 case Field.GOAL:
-                    this.addUserMessage('ついに宝を見つけたぞー!!')
-                    this.addMessage('＊ おめでとう ＊', EmphasisColor.INVERSE)
-                    this.addMessage('こうして一行は解散した...')
-                    models.Users.clear()
-                    this.users = models.Users.find()
-                    this.world.make()
+                    if (this.hasTreasure) {
+                        this.addMessage(`${this.world.name}を脱出した.`)
+                        this.addMessage('＊ おめでとう ＊', EmphasisColor.INVERSE)
+                        this.addMessage('こうして一行は宝を手に無事生還した. そして宴の後...')
+                        this.addMessage('彼らは各々の次なる冒険を求め旅立っていったのだった.')
+                        models.Users.clear()
+                        this.users = models.Users.find()
+                        this.world.make()
+                    } else {
+                        this.addUserMessage('出口だ. 宝を見つけたらここから脱出するぞ.')
+                    }
                     break
                 default:
                     if (target.treasure != null) {
