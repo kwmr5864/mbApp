@@ -478,20 +478,20 @@ var entities;
             _super.call(this, name);
             this.name = name;
             this.food = new LimitedValue(1000);
-            this.water = new LimitedValue(1000);
+            this.water = new LimitedValue(2000);
         }
         User.prototype.flow = function () {
             if (this.water.current < 1) {
-                this.life.current--;
+                this.life.sub(1);
             }
             else {
-                this.water.current--;
+                this.water.sub(3);
             }
             if (this.food.current < 1) {
-                this.life.current--;
+                this.life.sub(1);
             }
             else {
-                this.food.current--;
+                this.food.sub(2);
             }
         };
         User.prototype.useItem = function (item) {
