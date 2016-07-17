@@ -675,25 +675,23 @@ var appVm = new Vue({
         addMember: function () {
             var name = this.txt.trim();
             if (name == '') {
-                this.addMessage('名前を入力してください!');
+                name = faker.name.lastName() + " " + faker.name.firstName();
+            }
+            var added = false;
+            for (var i = 0; i < this.users.length; i++) {
+                if (name == this.users[i].name) {
+                    added = true;
+                    break;
+                }
+            }
+            if (added) {
+                this.addMessage(name + "\u306F\u8FFD\u52A0\u6E08\u307F\u3067\u3059!");
             }
             else {
-                var added = false;
-                for (var i = 0; i < this.users.length; i++) {
-                    if (name == this.users[i].name) {
-                        added = true;
-                        break;
-                    }
-                }
-                if (added) {
-                    this.addMessage(name + "\u306F\u8FFD\u52A0\u6E08\u307F\u3067\u3059!");
-                }
-                else {
-                    var user = new User(name);
-                    Users.add(user);
-                    this.users = Users.find();
-                    this.addMessage(name + "\u3092\u8FFD\u52A0\u3057\u307E\u3057\u305F!", EmphasisColor.SUCCESS);
-                }
+                var user = new User(name);
+                Users.add(user);
+                this.users = Users.find();
+                this.addMessage(name + "\u3092\u8FFD\u52A0\u3057\u307E\u3057\u305F!", EmphasisColor.SUCCESS);
             }
             this.txt = '';
         },

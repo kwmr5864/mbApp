@@ -1,5 +1,6 @@
 ///<reference path="typings/jquery/jquery.d.ts"/>
 ///<reference path="typings/vue/vue.d.ts"/>
+///<reference path="typings/faker/faker.d.ts"/>
 
 ///<reference path="enums/Field.ts"/>
 ///<reference path="enums/Direction.ts"/>
@@ -50,23 +51,22 @@ var appVm = new Vue({
         addMember: function () {
             var name = this.txt.trim()
             if (name == '') {
-              this.addMessage('名前を入力してください!')
+                name = `${faker.name.lastName()} ${faker.name.firstName()}`
+            }
+            var added = false
+            for (var i = 0; i < this.users.length; i++) {
+                if (name == this.users[i].name) {
+                    added = true
+                    break
+                }
+            }
+            if (added) {
+                this.addMessage(`${name}は追加済みです!`)
             } else {
-                var added = false
-                for (var i = 0; i < this.users.length; i++) {
-                    if (name == this.users[i].name) {
-                        added = true
-                        break
-                    }
-                }
-                if (added) {
-                    this.addMessage(`${name}は追加済みです!`)
-                } else {
-                    var user = new User(name)
-                    Users.add(user)
-                    this.users = Users.find()
-                    this.addMessage(`${name}を追加しました!`, EmphasisColor.SUCCESS)
-                }
+                var user = new User(name)
+                Users.add(user)
+                this.users = Users.find()
+                this.addMessage(`${name}を追加しました!`, EmphasisColor.SUCCESS)
             }
             this.txt = ''
         },
