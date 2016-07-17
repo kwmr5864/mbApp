@@ -144,7 +144,7 @@ var appVm = new Vue({
                     this.users.forEach(function (x) {
                         var damage = dice()
                         target.block.life.sub(damage)
-                        addMessage(`${x.name}は${targetName}を攻撃し ${damage} の損傷を与えた.`)
+                        addMessage(`${x.name}は${targetName}を攻撃し ${damage} の損傷を与えた.`, EmphasisColor.INFO)
                     })
                     if (target.block.life.current < 1) {
                         this.addMessage(`${targetName}を破壊.`)
@@ -369,8 +369,14 @@ var appVm = new Vue({
                 case EmphasisColor.DANGER:
                     em['danger'] = true
                     break
+                case EmphasisColor.ALERT:
+                    em['alert'] = true
+                    break
                 case EmphasisColor.SUCCESS:
                     em['success'] = true
+                    break
+                case EmphasisColor.INFO:
+                    em['info'] = true
                     break
                 case EmphasisColor.INVERSE:
                     em['inverse'] = true

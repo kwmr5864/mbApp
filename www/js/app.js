@@ -28,8 +28,10 @@ var enums;
     (function (EmphasisColor) {
         EmphasisColor[EmphasisColor["DEFAULT"] = 1] = "DEFAULT";
         EmphasisColor[EmphasisColor["DANGER"] = 2] = "DANGER";
-        EmphasisColor[EmphasisColor["SUCCESS"] = 3] = "SUCCESS";
-        EmphasisColor[EmphasisColor["INVERSE"] = 4] = "INVERSE";
+        EmphasisColor[EmphasisColor["ALERT"] = 3] = "ALERT";
+        EmphasisColor[EmphasisColor["SUCCESS"] = 4] = "SUCCESS";
+        EmphasisColor[EmphasisColor["INFO"] = 5] = "INFO";
+        EmphasisColor[EmphasisColor["INVERSE"] = 6] = "INVERSE";
     })(enums.EmphasisColor || (enums.EmphasisColor = {}));
     var EmphasisColor = enums.EmphasisColor;
 })(enums || (enums = {}));
@@ -771,7 +773,7 @@ var appVm = new Vue({
                     this.users.forEach(function (x) {
                         var damage = dice();
                         target.block.life.sub(damage);
-                        addMessage(x.name + "\u306F" + targetName + "\u3092\u653B\u6483\u3057 " + damage + " \u306E\u640D\u50B7\u3092\u4E0E\u3048\u305F.");
+                        addMessage(x.name + "\u306F" + targetName + "\u3092\u653B\u6483\u3057 " + damage + " \u306E\u640D\u50B7\u3092\u4E0E\u3048\u305F.", EmphasisColor.INFO);
                     });
                     if (target.block.life.current < 1) {
                         this.addMessage(targetName + "\u3092\u7834\u58CA.");
@@ -999,8 +1001,14 @@ var appVm = new Vue({
                 case EmphasisColor.DANGER:
                     em['danger'] = true;
                     break;
+                case EmphasisColor.ALERT:
+                    em['alert'] = true;
+                    break;
                 case EmphasisColor.SUCCESS:
                     em['success'] = true;
+                    break;
+                case EmphasisColor.INFO:
+                    em['info'] = true;
                     break;
                 case EmphasisColor.INVERSE:
                     em['inverse'] = true;
