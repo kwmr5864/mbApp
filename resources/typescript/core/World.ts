@@ -12,6 +12,7 @@
 ///<reference path="../entities/Blocks.ts"/>
 ///<reference path="../entities/Item.ts"/>
 ///<reference path="../entities/Spring.ts"/>
+///<reference path="../entities/TreasureBox.ts"/>
 
 module core {
     import dice = utils.dice
@@ -21,6 +22,7 @@ module core {
     import Cell = core.Cell
     import Item = entities.Item
     import Spring = entities.Spring
+    import TreasureBox = entities.TreasureBox;
 
     export class World {
         public static MAX_X = 9
@@ -46,9 +48,9 @@ module core {
                     switch (dice()) {
                         case 4:
                             var item = Item.getRandom()
-                            if (item != null) {
-                                row[j].treasure = item
-                            }
+                            let lock = dice() - 1
+                            var treasureBox = new TreasureBox(item, lock)
+                            row[j].treasure = treasureBox
                             break
                         case 5:
                             row[j].spring = new Spring()
@@ -70,8 +72,7 @@ module core {
                                     row[j].block = new entities.Tussock()
                                     break
                                 default:
-                                    row[j].block = new entities.TreasureBox()
-                                    row[j].block.addRandomItem()
+                                    row[j].block = new entities.WoodenBox()
                                     break
                             }
                             break
@@ -94,7 +95,9 @@ module core {
                     var treasureCell = this.fields[treasureY][treasureX]
                     treasureCell.field = Field.FLAT
                     var treasure = new Item(`秘宝「${faker.commerce.productName()}」`, ItemType.TREASURE)
-                    treasureCell.treasure = treasure
+                    let lock = dice()
+                    var treasureBox = new TreasureBox(treasure, lock, true)
+                    treasureCell.treasure = treasureBox
                     treasureCell.block = null
                     ok = true
                 }

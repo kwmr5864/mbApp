@@ -61,16 +61,6 @@ var core;
     }());
     core.LimitedValue = LimitedValue;
 })(core || (core = {}));
-var enums;
-(function (enums) {
-    (function (ItemType) {
-        ItemType[ItemType["TREASURE"] = 1] = "TREASURE";
-        ItemType[ItemType["OINTMENT"] = 2] = "OINTMENT";
-        ItemType[ItemType["MEAT"] = 3] = "MEAT";
-        ItemType[ItemType["PAPER"] = 4] = "PAPER";
-    })(enums.ItemType || (enums.ItemType = {}));
-    var ItemType = enums.ItemType;
-})(enums || (enums = {}));
 var entities;
 (function (entities) {
     var LimitedValue = core.LimitedValue;
@@ -79,21 +69,8 @@ var entities;
             if (_life === void 0) { _life = 100; }
             this.name = name;
             this._life = _life;
-            this.items = [];
-            this.itemLimit = 3;
             this.life = new LimitedValue(_life);
         }
-        LifeObject.prototype.addItem = function (item) {
-            if (this.items.length <= this.itemLimit) {
-                this.items.push(item);
-            }
-        };
-        LifeObject.prototype.addRandomItem = function () {
-            var item = entities.Item.getRandom();
-            if (item != null) {
-                this.addItem(item);
-            }
-        };
         return LifeObject;
     }());
     entities.LifeObject = LifeObject;
@@ -115,6 +92,73 @@ var utils;
     }
     utils.random = random;
 })(utils || (utils = {}));
+var entities;
+(function (entities) {
+    var dice = utils.dice;
+    var Block = (function (_super) {
+        __extends(Block, _super);
+        function Block(_name, _life, hasTreasure) {
+            if (hasTreasure === void 0) { hasTreasure = false; }
+            _super.call(this, _name + "\u300C" + faker.lorem.words(1) + "\u300D", _life);
+            this._name = _name;
+            this._life = _life;
+            this.hasTreasure = hasTreasure;
+        }
+        return Block;
+    }(entities.LifeObject));
+    entities.Block = Block;
+    var Wall = (function (_super) {
+        __extends(Wall, _super);
+        function Wall() {
+            _super.call(this, '壁', 9999);
+        }
+        return Wall;
+    }(Block));
+    entities.Wall = Wall;
+    var Rock = (function (_super) {
+        __extends(Rock, _super);
+        function Rock() {
+            _super.call(this, '岩', 30 + dice());
+        }
+        return Rock;
+    }(Block));
+    entities.Rock = Rock;
+    var Tree = (function (_super) {
+        __extends(Tree, _super);
+        function Tree() {
+            _super.call(this, '木', 10 + dice());
+        }
+        return Tree;
+    }(Block));
+    entities.Tree = Tree;
+    var WoodenBox = (function (_super) {
+        __extends(WoodenBox, _super);
+        function WoodenBox() {
+            _super.call(this, '木箱', 10 + dice(2), true);
+        }
+        return WoodenBox;
+    }(Block));
+    entities.WoodenBox = WoodenBox;
+    var Tussock = (function (_super) {
+        __extends(Tussock, _super);
+        function Tussock() {
+            _super.call(this, '草むら', dice());
+        }
+        return Tussock;
+    }(Block));
+    entities.Tussock = Tussock;
+})(entities || (entities = {}));
+var enums;
+(function (enums) {
+    (function (ItemType) {
+        ItemType[ItemType["TREASURE"] = 1] = "TREASURE";
+        ItemType[ItemType["OINTMENT"] = 2] = "OINTMENT";
+        ItemType[ItemType["MEAT"] = 3] = "MEAT";
+        ItemType[ItemType["KEY"] = 4] = "KEY";
+        ItemType[ItemType["PAPER"] = 5] = "PAPER";
+    })(enums.ItemType || (enums.ItemType = {}));
+    var ItemType = enums.ItemType;
+})(enums || (enums = {}));
 var entities;
 (function (entities) {
     var ItemType = enums.ItemType;
@@ -146,6 +190,22 @@ var entities;
         return Item;
     }(entities.LifeObject));
     entities.Item = Item;
+})(entities || (entities = {}));
+var entities;
+(function (entities) {
+    var TreasureBox = (function (_super) {
+        __extends(TreasureBox, _super);
+        function TreasureBox(item, lock, unbreakable) {
+            if (lock === void 0) { lock = 0; }
+            if (unbreakable === void 0) { unbreakable = false; }
+            _super.call(this, faker.commerce.productMaterial() + "\u306E\u5B9D\u7BB1");
+            this.item = item;
+            this.lock = lock;
+            this.unbreakable = unbreakable;
+        }
+        return TreasureBox;
+    }(entities.LifeObject));
+    entities.TreasureBox = TreasureBox;
 })(entities || (entities = {}));
 var entities;
 (function (entities) {
@@ -244,59 +304,6 @@ var core;
     }());
     core.Position = Position;
 })(core || (core = {}));
-var entities;
-(function (entities) {
-    var dice = utils.dice;
-    var Block = (function (_super) {
-        __extends(Block, _super);
-        function Block(_name, _life) {
-            _super.call(this, _name + "\u300C" + faker.lorem.words(1) + "\u300D", _life);
-            this._name = _name;
-            this._life = _life;
-        }
-        return Block;
-    }(entities.LifeObject));
-    var Wall = (function (_super) {
-        __extends(Wall, _super);
-        function Wall() {
-            _super.call(this, '壁', 9999);
-        }
-        return Wall;
-    }(Block));
-    entities.Wall = Wall;
-    var Rock = (function (_super) {
-        __extends(Rock, _super);
-        function Rock() {
-            _super.call(this, '岩', 30 + dice());
-        }
-        return Rock;
-    }(Block));
-    entities.Rock = Rock;
-    var Tree = (function (_super) {
-        __extends(Tree, _super);
-        function Tree() {
-            _super.call(this, '木', 10 + dice());
-        }
-        return Tree;
-    }(Block));
-    entities.Tree = Tree;
-    var TreasureBox = (function (_super) {
-        __extends(TreasureBox, _super);
-        function TreasureBox() {
-            _super.call(this, '木箱', 10 + dice(2));
-        }
-        return TreasureBox;
-    }(Block));
-    entities.TreasureBox = TreasureBox;
-    var Tussock = (function (_super) {
-        __extends(Tussock, _super);
-        function Tussock() {
-            _super.call(this, '草むら', dice());
-        }
-        return Tussock;
-    }(Block));
-    entities.Tussock = Tussock;
-})(entities || (entities = {}));
 var core;
 (function (core) {
     var dice = utils.dice;
@@ -306,6 +313,7 @@ var core;
     var Cell = core.Cell;
     var Item = entities.Item;
     var Spring = entities.Spring;
+    var TreasureBox = entities.TreasureBox;
     var World = (function () {
         function World(name) {
             if (name === void 0) { name = ''; }
@@ -324,9 +332,9 @@ var core;
                     switch (dice()) {
                         case 4:
                             var item = Item.getRandom();
-                            if (item != null) {
-                                row[j].treasure = item;
-                            }
+                            var lock = dice() - 1;
+                            var treasureBox = new TreasureBox(item, lock);
+                            row[j].treasure = treasureBox;
                             break;
                         case 5:
                             row[j].spring = new Spring();
@@ -348,8 +356,7 @@ var core;
                                     row[j].block = new entities.Tussock();
                                     break;
                                 default:
-                                    row[j].block = new entities.TreasureBox();
-                                    row[j].block.addRandomItem();
+                                    row[j].block = new entities.WoodenBox();
                                     break;
                             }
                             break;
@@ -371,7 +378,9 @@ var core;
                     var treasureCell = this.fields[treasureY][treasureX];
                     treasureCell.field = Field.FLAT;
                     var treasure = new Item("\u79D8\u5B9D\u300C" + faker.commerce.productName() + "\u300D", ItemType.TREASURE);
-                    treasureCell.treasure = treasure;
+                    var lock = dice();
+                    var treasureBox = new TreasureBox(treasure, lock, true);
+                    treasureCell.treasure = treasureBox;
                     treasureCell.block = null;
                     ok = true;
                 }
@@ -682,6 +691,8 @@ var Trap = entities.Trap;
 var Users = models.Users;
 var User = entities.User;
 var ItemType = enums.ItemType;
+var Item = entities.Item;
+var TreasureBox = entities.TreasureBox;
 var appVm = new Vue({
     el: '#app',
     data: {
@@ -689,6 +700,7 @@ var appVm = new Vue({
         mainMessages: [],
         txt: '',
         users: models.Users.find(),
+        keyCount: 10,
         direction: {
             value: Direction.NORTH,
             display: '',
@@ -770,10 +782,10 @@ var appVm = new Vue({
                     break;
                 default:
                     if (target.treasure != null) {
-                        this.addMessage('宝箱を見つけた.', EmphasisColor.INVERSE);
+                        this.addMessage(target.treasure.name + "\u304C\u3042\u308B.", EmphasisColor.INVERSE);
                     }
                     else if (target.spring != null) {
-                        this.addMessage(target.spring.name + ".", EmphasisColor.INVERSE);
+                        this.addMessage(target.spring.name + "\u3060.", EmphasisColor.INVERSE);
                     }
                     else {
                         this.addMessage('ここには何もない.');
@@ -785,13 +797,29 @@ var appVm = new Vue({
         take: function () {
             var target = this.world.fields[this.position.y][this.position.x];
             if (target.treasure != null) {
-                this.addMessage('宝箱を開けた.');
-                this.addMessage(target.treasure.name + "\u3092\u624B\u306B\u5165\u308C\u305F.", EmphasisColor.SUCCESS);
-                if (target.treasure.itemType == ItemType.TREASURE) {
-                    this.hasTreasure = true;
-                    this.addUserMessage("\u91CE\u90CE\u3069\u3082\u5F15\u304D\u4E0A\u3052\u308B\u305E! \u51FA\u53E3\u3092\u63A2\u305B!");
+                if (0 < target.treasure.lock) {
+                    this.addMessage('鍵がかかっているようだ.');
                 }
-                target.treasure = null;
+                else {
+                    this.addMessage('箱を開けた.');
+                    var item = target.treasure.item;
+                    if (item != null) {
+                        this.addMessage(item.name + "\u3092\u624B\u306B\u5165\u308C\u305F.", EmphasisColor.SUCCESS);
+                        switch (item.itemType) {
+                            case ItemType.KEY:
+                                this.keyCount++;
+                                break;
+                            case ItemType.TREASURE:
+                                this.hasTreasure = true;
+                                this.addUserMessage("\u91CE\u90CE\u3069\u3082\u5F15\u304D\u4E0A\u3052\u308B\u305E! \u51FA\u53E3\u3092\u63A2\u305B!");
+                                break;
+                        }
+                        target.treasure.item = null;
+                    }
+                    else {
+                        this.addMessage('中はもぬけの殻だった...');
+                    }
+                }
             }
             else if (target.spring != null) {
                 this.addMessage(target.spring.name + "\u306E\u6C34\u3092\u98F2\u3093\u3060.");
@@ -812,6 +840,51 @@ var appVm = new Vue({
             }
             this.after();
         },
+        useKey: function () {
+            var target = this.world.fields[this.position.y][this.position.x];
+            if (this.keyCount < 1) {
+                this.addMessage('鍵を持っていない.');
+            }
+            else if (target.treasure == null) {
+                this.addMessage('鍵を使う場所がない.');
+            }
+            else if (target.treasure.lock < 1) {
+                this.addMessage('この箱は既に鍵が外れている.');
+            }
+            else if (target.treasure.life.current < 1) {
+                this.addMessage('この箱は壊れてしまったのでもう開けられないだろう...');
+            }
+            else {
+                switch (dice()) {
+                    case 1:
+                    case 2:
+                        this.addMessage('鍵を1つこじ開けた.', EmphasisColor.INFO);
+                        target.treasure.lock--;
+                        break;
+                    default:
+                        this.addMessage('中々開かない...');
+                        break;
+                }
+                switch (dice()) {
+                    case 1:
+                    case 2:
+                        this.addMessage("\u9375\u304C\u6298\u308C\u305F. (" + this.keyCount + ")");
+                        this.keyCount--;
+                        break;
+                }
+                if (target.treasure.lock < 1) {
+                    this.addMessage('箱が開いた!.', EmphasisColor.SUCCESS);
+                }
+                else if (!target.treasure.unbreakable) {
+                    var damage = dice();
+                    target.treasure.life.sub(damage);
+                    if (target.treasure.life.current < 1) {
+                        this.addMessage('箱が壊れてしまった...');
+                    }
+                }
+            }
+            this.after();
+        },
         action: function () {
             var target = this.world.getForwardCell(this.position, this.direction.value);
             switch (target.field) {
@@ -829,9 +902,16 @@ var appVm = new Vue({
                     });
                     if (target.block.life.current < 1) {
                         this.addMessage(targetName + "\u3092\u7834\u58CA.");
-                        if (0 < target.block.items.length) {
-                            this.addMessage('目の前に何かが落ちた.', EmphasisColor.SUCCESS);
-                            target.treasure = target.block.items[0];
+                        if (target.block.hasTreasure) {
+                            switch (dice()) {
+                                case 1:
+                                case 2:
+                                    this.addMessage('目の前に何かが落ちた.', EmphasisColor.SUCCESS);
+                                    var item = Item.getRandom();
+                                    var lock = dice() - 1;
+                                    target.treasure = new TreasureBox(item, lock);
+                                    break;
+                            }
                         }
                         target.field = Field.FLAT;
                         target.block = null;
@@ -840,10 +920,6 @@ var appVm = new Vue({
                     break;
             }
             this.afterAction();
-            this.after();
-        },
-        useKey: function () {
-            this.addMessage('鍵を持っていない.');
             this.after();
         },
         compass: function () {
@@ -991,6 +1067,7 @@ var appVm = new Vue({
             this.users = models.Users.find();
         },
         after: function () {
+            this.topMessage = "\u4F4D\u7F6E: (" + this.position.x + "," + this.position.y + ")";
             if (this.users.length < 1) {
                 this.direction.enable = false;
             }
@@ -1053,13 +1130,13 @@ var appVm = new Vue({
                     }
                     break;
                 case 4:
-                    this.addUserMessage('...');
+                    this.keyCount++;
+                    this.addUserMessage("\u3061\u3063\u307D\u3051\u306A\u9375\u304C\u843D\u3061\u3066\u3044\u308B. \u8CB0\u3063\u3066\u304A\u3053\u3046. (" + this.keyCount + ")");
                     break;
             }
         },
         addMessage: function (message, emphasis) {
             if (emphasis === void 0) { emphasis = EmphasisColor.DEFAULT; }
-            this.topMessage = "\u4F4D\u7F6E: (" + this.position.x + "," + this.position.y + ")";
             if (4 < this.mainMessages.length) {
                 this.mainMessages.shift();
             }

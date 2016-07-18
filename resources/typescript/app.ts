@@ -30,6 +30,8 @@ import Trap = entities.Trap
 import Users = models.Users
 import User = entities.User
 import ItemType = enums.ItemType;
+import Item = entities.Item;
+import TreasureBox = entities.TreasureBox;
 
 var appVm = new Vue({
     el: '#app',
@@ -38,6 +40,7 @@ var appVm = new Vue({
         mainMessages: [],
         txt: '',
         users: models.Users.find(),
+        keyCount: 10,
         direction: {
             value: Direction.NORTH,
             display: '',
@@ -117,9 +120,9 @@ var appVm = new Vue({
                     break
                 default:
                     if (target.treasure != null) {
-                        this.addMessage('宝箱を見つけた.', EmphasisColor.INVERSE)
+                        this.addMessage(`${target.treasure.name}がある.`, EmphasisColor.INVERSE)
                     } else if (target.spring != null) {
-                        this.addMessage(`${target.spring.name}.`, EmphasisColor.INVERSE)
+                        this.addMessage(`${target.spring.name}だ.`, EmphasisColor.INVERSE)
                     } else {
                         this.addMessage('ここには何もない.')
                     }
@@ -130,13 +133,27 @@ var appVm = new Vue({
         take: function () {
             var target = this.world.fields[this.position.y][this.position.x]
             if (target.treasure != null) {
-                this.addMessage('宝箱を開けた.')
-                this.addMessage(`${target.treasure.name}を手に入れた.`, EmphasisColor.SUCCESS)
-                if (target.treasure.itemType == ItemType.TREASURE) {
-                    this.hasTreasure = true
-                    this.addUserMessage(`野郎ども引き上げるぞ! 出口を探せ!`)
+                if (0 < target.treasure.lock) {
+                    this.addMessage('鍵がかかっているようだ.')
+                } else {
+                    this.addMessage('箱を開けた.')
+                    var item = target.treasure.item
+                    if (item != null) {
+                        this.addMessage(`${item.name}を手に入れた.`, EmphasisColor.SUCCESS)
+                        switch (item.itemType) {
+                            case ItemType.KEY:
+                                this.keyCount++
+                                break
+                            case ItemType.TREASURE:
+                                this.hasTreasure = true
+                                this.addUserMessage(`野郎ども引き上げるぞ! 出口を探せ!`)
+                                break
+                        }
+                        target.treasure.item = null
+                    } else {
+                        this.addMessage('中はもぬけの殻だった...')
+                    }
                 }
-                target.treasure = null
             } else if (target.spring != null) {
                 this.addMessage(`${target.spring.name}の水を飲んだ.`)
                 for (var i = 0; i < this.users.length; i++) {
@@ -152,6 +169,46 @@ var appVm = new Vue({
                 }
             } else {
                 this.addMessage('ここには何もない.')
+            }
+            this.after()
+        },
+        useKey: function () {
+            var target = this.world.fields[this.position.y][this.position.x]
+            if (this.keyCount < 1) {
+                this.addMessage('鍵を持っていない.')
+            } else if (target.treasure == null) {
+                this.addMessage('鍵を使う場所がない.')
+            } else if (target.treasure.lock < 1) {
+                this.addMessage('この箱は既に鍵が外れている.')
+            } else if (target.treasure.life.current < 1) {
+                this.addMessage('この箱は壊れてしまったのでもう開けられないだろう...')
+            } else {
+                switch (dice()) {
+                    case 1:
+                    case 2:
+                        this.addMessage('鍵を1つこじ開けた.', EmphasisColor.INFO)
+                        target.treasure.lock--
+                        break
+                    default:
+                        this.addMessage('中々開かない...')
+                        break
+                }
+                switch (dice()) {
+                    case 1:
+                    case 2:
+                        this.addMessage(`鍵が折れた. (${this.keyCount})`)
+                        this.keyCount--
+                        break
+                }
+                if (target.treasure.lock < 1) {
+                    this.addMessage('箱が開いた!.', EmphasisColor.SUCCESS)
+                } else if (!target.treasure.unbreakable) {
+                    let damage = dice()
+                    target.treasure.life.sub(damage)
+                    if (target.treasure.life.current < 1) {
+                        this.addMessage('箱が壊れてしまった...')
+                    }
+                }
             }
             this.after()
         },
@@ -172,10 +229,16 @@ var appVm = new Vue({
                     })
                     if (target.block.life.current < 1) {
                         this.addMessage(`${targetName}を破壊.`)
-                        if (0 < target.block.items.length) {
-                            // TODO: 所有のアイテムからランダムで設置する
-                            this.addMessage('目の前に何かが落ちた.', EmphasisColor.SUCCESS)
-                            target.treasure = target.block.items[0]
+                        if (target.block.hasTreasure) {
+                            switch (dice()) {
+                                case 1:
+                                case 2:
+                                    this.addMessage('目の前に何かが落ちた.', EmphasisColor.SUCCESS)
+                                    var item = Item.getRandom()
+                                    let lock = dice() - 1
+                                    target.treasure = new TreasureBox(item, lock)
+                                    break
+                            }
                         }
                         target.field = Field.FLAT
                         target.block = null
@@ -184,10 +247,6 @@ var appVm = new Vue({
                     break
             }
             this.afterAction()
-            this.after()
-        },
-        useKey: function () {
-            this.addMessage('鍵を持っていない.')
             this.after()
         },
         compass: function () {
@@ -333,6 +392,7 @@ var appVm = new Vue({
             this.users = models.Users.find()
         },
         after: function () {
+            this.topMessage = `位置: (${this.position.x},${this.position.y})`
             if (this.users.length < 1) {
                 this.direction.enable = false
             }
@@ -392,12 +452,12 @@ var appVm = new Vue({
                     }
                     break
                 case 4:
-                    this.addUserMessage('...')
+                    this.keyCount++
+                    this.addUserMessage(`ちっぽけな鍵が落ちている. 貰っておこう. (${this.keyCount})`)
                     break
             }
         },
         addMessage: function (message: string, emphasis: EmphasisColor = EmphasisColor.DEFAULT) {
-            this.topMessage = `位置: (${this.position.x},${this.position.y})`
             if (4 < this.mainMessages.length) {
                 this.mainMessages.shift()
             }

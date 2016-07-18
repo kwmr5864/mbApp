@@ -5,8 +5,8 @@
 
 module entities {
     import dice = utils.dice;
-    abstract class Block extends LifeObject {
-        constructor(private _name: string, protected _life: number) {
+    export abstract class Block extends LifeObject {
+        constructor(private _name: string, protected _life: number, public hasTreasure: boolean = false) {
             super(`${_name}「${faker.lorem.words(1)}」`, _life)
         }
     }
@@ -25,9 +25,9 @@ module entities {
             super('木', 10 + dice())
         }
     }
-    export class TreasureBox extends Block {
+    export class WoodenBox extends Block {
         constructor() {
-            super('木箱', 10 + dice(2))
+            super('木箱', 10 + dice(2), true)
         }
     }
     export class Tussock extends Block {
