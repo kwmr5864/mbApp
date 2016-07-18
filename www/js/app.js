@@ -147,6 +147,18 @@ var entities;
     }(entities.LifeObject));
     entities.Item = Item;
 })(entities || (entities = {}));
+var entities;
+(function (entities) {
+    var Spring = (function (_super) {
+        __extends(Spring, _super);
+        function Spring() {
+            var amount = Math.ceil(dice() / 2);
+            _super.call(this, faker.commerce.color() + "\u306E\u6E67\u304D\u6C34", amount);
+        }
+        return Spring;
+    }(entities.LifeObject));
+    entities.Spring = Spring;
+})(entities || (entities = {}));
 var core;
 (function (core) {
     var Cell = (function () {
@@ -293,6 +305,7 @@ var core;
     var ItemType = enums.ItemType;
     var Cell = core.Cell;
     var Item = entities.Item;
+    var Spring = entities.Spring;
     var World = (function () {
         function World(name) {
             if (name === void 0) { name = ''; }
@@ -307,44 +320,38 @@ var core;
             for (var i = 0; i <= World.MAX_Y; i++) {
                 var row = new Array(World.MAX_X + 1);
                 for (var j = 0; j <= World.MAX_X; j++) {
+                    row[j] = new Cell(Field.FLAT);
                     switch (dice()) {
+                        case 4:
+                            var item = Item.getRandom();
+                            if (item != null) {
+                                row[j].treasure = item;
+                            }
+                            break;
                         case 5:
+                            row[j].spring = new Spring();
+                            break;
                         case 6:
+                            row[j].field = Field.BLOCK;
                             switch (dice()) {
                                 case 1:
-                                    row[j] = new Cell(Field.WALL);
+                                    row[j].field = Field.WALL;
                                     row[j].block = new entities.Wall();
                                     break;
                                 case 2:
-                                    row[j] = new Cell(Field.BLOCK);
                                     row[j].block = new entities.Rock();
                                     break;
                                 case 3:
-                                    row[j] = new Cell(Field.BLOCK);
                                     row[j].block = new entities.Tree();
                                     break;
                                 case 4:
-                                    row[j] = new Cell(Field.BLOCK);
                                     row[j].block = new entities.Tussock();
                                     break;
                                 default:
-                                    row[j] = new Cell(Field.BLOCK);
                                     row[j].block = new entities.TreasureBox();
                                     row[j].block.addRandomItem();
                                     break;
                             }
-                            switch (dice()) {
-                                case 1:
-                                case 2:
-                                    var item = Item.getRandom();
-                                    if (item != null) {
-                                        row[j].treasure = item;
-                                    }
-                                    break;
-                            }
-                            break;
-                        default:
-                            row[j] = new Cell(Field.FLAT);
                             break;
                     }
                 }
@@ -771,6 +778,20 @@ var appVm = new Vue({
                         }
                         target.treasure = null;
                     }
+                    else if (target.spring != null) {
+                        this.addMessage(target.spring.name + ".", EmphasisColor.INVERSE);
+                        for (var i = 0; i < this.users.length; i++) {
+                            var user = this.users[i];
+                            var amount = 100 - dice(2);
+                            user.water.add(amount);
+                        }
+                        target.spring.life.sub(1);
+                        this.addMessage('一行は水分を補給した.', EmphasisColor.SUCCESS);
+                        if (target.spring.life.current < 1) {
+                            this.addMessage(target.spring.name + "\u306F\u5E72\u4E0A\u304C\u3063\u305F.");
+                            target.spring = null;
+                        }
+                    }
                     else {
                         this.addMessage('何もない.');
                     }
@@ -838,7 +859,12 @@ var appVm = new Vue({
                 case Field.FLAT:
                 case Field.GOAL:
                     var forwardCell = this.world.getForwardCell(this.position, this.direction.value);
-                    this.addMessage("\u524D\u3078\u9032\u3093\u3060. " + (forwardCell.treasure != null ? '足元に何かある.' : ''));
+                    if (forwardCell.treasure != null || forwardCell.spring != null) {
+                        this.addMessage('前へ進んだ. 足元に何かある.', EmphasisColor.INFO);
+                    }
+                    else {
+                        this.addMessage('前へ進んだ.');
+                    }
                     var forwardPosition = this.world.getForwardPosition(this.position, this.direction.value);
                     this.position = forwardPosition;
                     this.randomEvent();
@@ -947,7 +973,7 @@ var appVm = new Vue({
                 var user = this.users[i];
                 user.flow();
                 if (user.life.current < 1) {
-                    this.addMessage(user.name + "\u306F\u529B\u5C3D\u304D\u305F...", EmphasisColor.DANGER);
+                    this.addMessage(user.name + "\u306F\u606F\u7D76\u3048\u305F...", EmphasisColor.DANGER);
                     models.Users.delete(user.name);
                     this.users = models.Users.find();
                 }

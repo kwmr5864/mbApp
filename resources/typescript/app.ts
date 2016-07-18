@@ -124,6 +124,19 @@ var appVm = new Vue({
                             this.addUserMessage(`野郎ども引き上げるぞ! 出口を探せ!`)
                         }
                         target.treasure = null
+                    } else if (target.spring != null) {
+                        this.addMessage(`${target.spring.name}.`, EmphasisColor.INVERSE)
+                        for (var i = 0; i < this.users.length; i++) {
+                            var user = this.users[i]
+                            let amount = 100 - dice(2)
+                            user.water.add(amount)
+                        }
+                        target.spring.life.sub(1)
+                        this.addMessage('一行は水分を補給した.', EmphasisColor.SUCCESS)
+                        if (target.spring.life.current < 1) {
+                            this.addMessage(`${target.spring.name}は干上がった.`)
+                            target.spring = null
+                        }
                     } else {
                         this.addMessage('何もない.')
                     }
@@ -191,7 +204,11 @@ var appVm = new Vue({
                 case Field.FLAT:
                 case Field.GOAL:
                     var forwardCell = this.world.getForwardCell(this.position, this.direction.value)
-                    this.addMessage(`前へ進んだ. ${forwardCell.treasure != null ? '足元に何かある.' : ''}`)
+                    if (forwardCell.treasure != null || forwardCell.spring != null) {
+                        this.addMessage('前へ進んだ. 足元に何かある.', EmphasisColor.INFO)
+                    } else {
+                        this.addMessage('前へ進んだ.')
+                    }
                     var forwardPosition = this.world.getForwardPosition(this.position, this.direction.value)
                     this.position = forwardPosition
                     this.randomEvent()
@@ -300,7 +317,7 @@ var appVm = new Vue({
                 var user = this.users[i]
                 user.flow()
                 if (user.life.current < 1) {
-                    this.addMessage(`${user.name}は力尽きた...`, EmphasisColor.DANGER)
+                    this.addMessage(`${user.name}は息絶えた...`, EmphasisColor.DANGER)
                     models.Users.delete(user.name)
                     this.users = models.Users.find()
                 }
