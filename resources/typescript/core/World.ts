@@ -11,6 +11,7 @@
 
 ///<reference path="../entities/Blocks.ts"/>
 ///<reference path="../entities/Item.ts"/>
+///<reference path="../entities/Spring.ts"/>
 
 module core {
     import dice = utils.dice
@@ -19,11 +20,12 @@ module core {
     import ItemType = enums.ItemType
     import Cell = core.Cell
     import Item = entities.Item
+    import Spring = entities.Spring
 
     export class World {
-        public static MAX_X = 7
+        public static MAX_X = 9
         public static MIN_X = 0
-        public static MAX_Y = 7
+        public static MAX_Y = 9
         public static MIN_Y = 0
 
         public fields: Cell[][]
@@ -40,44 +42,38 @@ module core {
             for (var i = 0; i <= World.MAX_Y; i++) {
                 var row = new Array(World.MAX_X + 1)
                 for (var j = 0; j <= World.MAX_X; j++) {
+                    row[j] = new Cell(Field.FLAT)
                     switch (dice()) {
+                        case 4:
+                            var item = Item.getRandom()
+                            if (item != null) {
+                                row[j].treasure = item
+                            }
+                            break
                         case 5:
+                            row[j].spring = new Spring()
+                            break
                         case 6:
+                            row[j].field = Field.BLOCK
                             switch (dice()) {
                                 case 1:
-                                    row[j] = new Cell(Field.WALL)
+                                    row[j].field = Field.WALL
                                     row[j].block = new entities.Wall()
                                     break
                                 case 2:
-                                    row[j] = new Cell(Field.BLOCK)
                                     row[j].block = new entities.Rock()
                                     break
                                 case 3:
-                                    row[j] = new Cell(Field.BLOCK)
                                     row[j].block = new entities.Tree()
                                     break
                                 case 4:
-                                    row[j] = new Cell(Field.BLOCK)
                                     row[j].block = new entities.Tussock()
                                     break
                                 default:
-                                    row[j] = new Cell(Field.BLOCK)
                                     row[j].block = new entities.TreasureBox()
                                     row[j].block.addRandomItem()
                                     break
                             }
-                            switch (dice()) {
-                                case 1:
-                                case 2:
-                                    var item = Item.getRandom()
-                                    if (item != null) {
-                                        row[j].treasure = item
-                                    }
-                                    break
-                            }
-                            break
-                        default:
-                            row[j] = new Cell(Field.FLAT)
                             break
                     }
                 }

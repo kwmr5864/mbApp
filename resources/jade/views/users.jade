@@ -11,5 +11,7 @@ ul#users.mdl-list.mdl-list__item--three-line
                 span {{ x.life.current }}
                 +material-icon('restaurant_menu')
                 span {{ x.food.current }}
+                +material-icon('local_drink')
+                span {{ x.water.current }}
         span.mdl-list__item-secondary-content
             +mdl-fab-button-mini('clear', 'removeUser(x.name)')

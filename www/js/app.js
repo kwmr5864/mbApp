@@ -147,6 +147,18 @@ var entities;
     }(entities.LifeObject));
     entities.Item = Item;
 })(entities || (entities = {}));
+var entities;
+(function (entities) {
+    var Spring = (function (_super) {
+        __extends(Spring, _super);
+        function Spring() {
+            var amount = Math.ceil(dice() / 2);
+            _super.call(this, faker.commerce.color() + "\u306E\u6E67\u304D\u6C34", amount);
+        }
+        return Spring;
+    }(entities.LifeObject));
+    entities.Spring = Spring;
+})(entities || (entities = {}));
 var core;
 (function (core) {
     var Cell = (function () {
@@ -293,6 +305,7 @@ var core;
     var ItemType = enums.ItemType;
     var Cell = core.Cell;
     var Item = entities.Item;
+    var Spring = entities.Spring;
     var World = (function () {
         function World(name) {
             if (name === void 0) { name = ''; }
@@ -307,44 +320,38 @@ var core;
             for (var i = 0; i <= World.MAX_Y; i++) {
                 var row = new Array(World.MAX_X + 1);
                 for (var j = 0; j <= World.MAX_X; j++) {
+                    row[j] = new Cell(Field.FLAT);
                     switch (dice()) {
+                        case 4:
+                            var item = Item.getRandom();
+                            if (item != null) {
+                                row[j].treasure = item;
+                            }
+                            break;
                         case 5:
+                            row[j].spring = new Spring();
+                            break;
                         case 6:
+                            row[j].field = Field.BLOCK;
                             switch (dice()) {
                                 case 1:
-                                    row[j] = new Cell(Field.WALL);
+                                    row[j].field = Field.WALL;
                                     row[j].block = new entities.Wall();
                                     break;
                                 case 2:
-                                    row[j] = new Cell(Field.BLOCK);
                                     row[j].block = new entities.Rock();
                                     break;
                                 case 3:
-                                    row[j] = new Cell(Field.BLOCK);
                                     row[j].block = new entities.Tree();
                                     break;
                                 case 4:
-                                    row[j] = new Cell(Field.BLOCK);
                                     row[j].block = new entities.Tussock();
                                     break;
                                 default:
-                                    row[j] = new Cell(Field.BLOCK);
                                     row[j].block = new entities.TreasureBox();
                                     row[j].block.addRandomItem();
                                     break;
                             }
-                            switch (dice()) {
-                                case 1:
-                                case 2:
-                                    var item = Item.getRandom();
-                                    if (item != null) {
-                                        row[j].treasure = item;
-                                    }
-                                    break;
-                            }
-                            break;
-                        default:
-                            row[j] = new Cell(Field.FLAT);
                             break;
                     }
                 }
@@ -460,9 +467,9 @@ var core;
             }
             return targetPosition;
         };
-        World.MAX_X = 7;
+        World.MAX_X = 9;
         World.MIN_X = 0;
-        World.MAX_Y = 7;
+        World.MAX_Y = 9;
         World.MIN_Y = 0;
         return World;
     }());
@@ -478,13 +485,20 @@ var entities;
             _super.call(this, name);
             this.name = name;
             this.food = new LimitedValue(1000);
+            this.water = new LimitedValue(2000);
         }
         User.prototype.flow = function () {
-            if (this.food.current < 1) {
-                this.life.current--;
+            if (this.water.current < 1) {
+                this.life.sub(1);
             }
             else {
-                this.food.current--;
+                this.water.sub(3);
+            }
+            if (this.food.current < 1) {
+                this.life.sub(1);
+            }
+            else {
+                this.food.sub(2);
             }
         };
         User.prototype.useItem = function (item) {
@@ -523,18 +537,21 @@ var entities;
         }
         Trap.random = function () {
             var trap = null;
-            switch (dice()) {
-                case 1:
+            switch (dice(2)) {
+                case 8:
                     trap = new Sling();
                     break;
-                case 2:
+                case 9:
                     trap = new Crossbow();
                     break;
-                case 3:
+                case 10:
                     trap = new Gas();
                     break;
-                case 4:
+                case 11:
                     trap = new Bomb();
+                    break;
+                case 12:
+                    trap = new Chainsaw();
                     break;
                 default:
                     break;
@@ -542,7 +559,7 @@ var entities;
             return trap;
         };
         Trap.prototype.operate = function () {
-            var damage = this.base + dice();
+            var damage = this.base - dice();
             return damage;
         };
         return Trap;
@@ -551,7 +568,7 @@ var entities;
     var Sling = (function (_super) {
         __extends(Sling, _super);
         function Sling() {
-            _super.call(this, '投石', TargetRange.ONE, 5);
+            _super.call(this, '投石', TargetRange.ONE, 10);
         }
         return Sling;
     }(Trap));
@@ -564,6 +581,14 @@ var entities;
         return Crossbow;
     }(Trap));
     entities.Crossbow = Crossbow;
+    var Chainsaw = (function (_super) {
+        __extends(Chainsaw, _super);
+        function Chainsaw() {
+            _super.call(this, 'チェーンソー', TargetRange.ONE, 10000);
+        }
+        return Chainsaw;
+    }(Trap));
+    entities.Chainsaw = Chainsaw;
     var Gas = (function (_super) {
         __extends(Gas, _super);
         function Gas() {
@@ -575,7 +600,7 @@ var entities;
     var Bomb = (function (_super) {
         __extends(Bomb, _super);
         function Bomb() {
-            _super.call(this, '爆弾', TargetRange.ALL, 50);
+            _super.call(this, '爆弾', TargetRange.ALL, 60);
         }
         return Bomb;
     }(Trap));
@@ -613,6 +638,8 @@ var models;
                 user.life.max = row.life.max;
                 user.food.current = row.food.current;
                 user.food.max = row.food.max;
+                user.water.current = row.water.current;
+                user.water.max = row.water.max;
                 return user;
             }) : [];
             return users;
@@ -675,25 +702,23 @@ var appVm = new Vue({
         addMember: function () {
             var name = this.txt.trim();
             if (name == '') {
-                this.addMessage('名前を入力してください!');
+                name = faker.name.lastName() + " " + faker.name.firstName();
+            }
+            var added = false;
+            for (var i = 0; i < this.users.length; i++) {
+                if (name == this.users[i].name) {
+                    added = true;
+                    break;
+                }
+            }
+            if (added) {
+                this.addMessage(name + "\u306F\u8FFD\u52A0\u6E08\u307F\u3067\u3059!");
             }
             else {
-                var added = false;
-                for (var i = 0; i < this.users.length; i++) {
-                    if (name == this.users[i].name) {
-                        added = true;
-                        break;
-                    }
-                }
-                if (added) {
-                    this.addMessage(name + "\u306F\u8FFD\u52A0\u6E08\u307F\u3067\u3059!");
-                }
-                else {
-                    var user = new User(name);
-                    Users.add(user);
-                    this.users = Users.find();
-                    this.addMessage(name + "\u3092\u8FFD\u52A0\u3057\u307E\u3057\u305F!", EmphasisColor.SUCCESS);
-                }
+                var user = new User(name);
+                Users.add(user);
+                this.users = Users.find();
+                this.addMessage(name + "\u3092\u8FFD\u52A0\u3057\u307E\u3057\u305F!", EmphasisColor.SUCCESS);
             }
             this.txt = '';
         },
@@ -745,18 +770,45 @@ var appVm = new Vue({
                     break;
                 default:
                     if (target.treasure != null) {
-                        this.addMessage('宝箱を見つけた!', EmphasisColor.INVERSE);
-                        this.addMessage(target.treasure.name + "\u3092\u624B\u306B\u5165\u308C\u305F.", EmphasisColor.SUCCESS);
-                        if (target.treasure.itemType == ItemType.TREASURE) {
-                            this.hasTreasure = true;
-                            this.addUserMessage("\u91CE\u90CE\u3069\u3082\u5F15\u304D\u4E0A\u3052\u308B\u305E! \u51FA\u53E3\u3092\u63A2\u305B!");
-                        }
-                        target.treasure = null;
+                        this.addMessage('宝箱を見つけた.', EmphasisColor.INVERSE);
+                    }
+                    else if (target.spring != null) {
+                        this.addMessage(target.spring.name + ".", EmphasisColor.INVERSE);
                     }
                     else {
-                        this.addMessage('何もない.');
+                        this.addMessage('ここには何もない.');
                     }
                     break;
+            }
+            this.after();
+        },
+        take: function () {
+            var target = this.world.fields[this.position.y][this.position.x];
+            if (target.treasure != null) {
+                this.addMessage('宝箱を開けた.');
+                this.addMessage(target.treasure.name + "\u3092\u624B\u306B\u5165\u308C\u305F.", EmphasisColor.SUCCESS);
+                if (target.treasure.itemType == ItemType.TREASURE) {
+                    this.hasTreasure = true;
+                    this.addUserMessage("\u91CE\u90CE\u3069\u3082\u5F15\u304D\u4E0A\u3052\u308B\u305E! \u51FA\u53E3\u3092\u63A2\u305B!");
+                }
+                target.treasure = null;
+            }
+            else if (target.spring != null) {
+                this.addMessage(target.spring.name + "\u306E\u6C34\u3092\u98F2\u3093\u3060.");
+                for (var i = 0; i < this.users.length; i++) {
+                    var user = this.users[i];
+                    var amount = 100 - dice(2);
+                    user.water.add(amount);
+                }
+                target.spring.life.sub(1);
+                this.addMessage('水分を補給した.', EmphasisColor.SUCCESS);
+                if (target.spring.life.current < 1) {
+                    this.addMessage(target.spring.name + "\u306F\u5E72\u4E0A\u304C\u3063\u305F.");
+                    target.spring = null;
+                }
+            }
+            else {
+                this.addMessage('ここには何もない.');
             }
             this.after();
         },
@@ -794,10 +846,6 @@ var appVm = new Vue({
             this.addMessage('鍵を持っていない.');
             this.after();
         },
-        watch: function () {
-            this.addMessage('時計を持っていない.');
-            this.after();
-        },
         compass: function () {
             if (this.direction.enable) {
                 this.addMessage('コンパスを止めた.');
@@ -820,7 +868,12 @@ var appVm = new Vue({
                 case Field.FLAT:
                 case Field.GOAL:
                     var forwardCell = this.world.getForwardCell(this.position, this.direction.value);
-                    this.addMessage("\u524D\u3078\u9032\u3093\u3060. " + (forwardCell.treasure != null ? '足元に何かある.' : ''));
+                    if (forwardCell.treasure != null || forwardCell.spring != null) {
+                        this.addMessage('前へ進んだ. 足元に何かある.', EmphasisColor.INFO);
+                    }
+                    else {
+                        this.addMessage('前へ進んだ.');
+                    }
                     var forwardPosition = this.world.getForwardPosition(this.position, this.direction.value);
                     this.position = forwardPosition;
                     this.randomEvent();
@@ -929,7 +982,7 @@ var appVm = new Vue({
                 var user = this.users[i];
                 user.flow();
                 if (user.life.current < 1) {
-                    this.addMessage(user.name + "\u306F\u529B\u5C3D\u304D\u305F...", EmphasisColor.DANGER);
+                    this.addMessage(user.name + "\u306F\u606F\u7D76\u3048\u305F...", EmphasisColor.DANGER);
                     models.Users.delete(user.name);
                     this.users = models.Users.find();
                 }
@@ -946,46 +999,60 @@ var appVm = new Vue({
         randomEvent: function () {
             switch (dice()) {
                 case 1:
-                    this.addUserMessage('いい天気だ.');
+                    this.addUserMessage('食い物が落ちてるぜ!');
+                    this.addMessage('保存のきかなさそうな果実で一行はわずかに腹を満たした.', EmphasisColor.SUCCESS);
+                    for (var i = 0; i < this.users.length; i++) {
+                        var user = this.users[i];
+                        var food = dice(2);
+                        user.food.add(food);
+                    }
                     break;
                 case 2:
-                    this.addUserMessage('何かが起こりそうな気がする...');
+                    this.addMessage('コウモリの群れだ!', EmphasisColor.INVERSE);
+                    switch (dice()) {
+                        case 1:
+                            this.addMessage('だが幸い食糧を奪われずに済んだ.');
+                            break;
+                        default:
+                            for (var i = 0; i < this.users.length; i++) {
+                                var user = this.users[i];
+                                var food = dice(2);
+                                user.food.sub(food);
+                            }
+                            this.addMessage('食糧を少し奪われてしまった...');
+                            break;
+                    }
                     break;
                 case 3:
-                    this.addUserMessage('油断するなよ.');
-                    break;
-                case 4:
-                    this.addMessage('食糧を拾った!', EmphasisColor.SUCCESS);
-                    this.users.forEach(function (x) {
-                        var food = dice(2);
-                        x.food.add(food);
-                    });
-                    break;
-                case 5:
                     var trap = Trap.random();
                     if (trap != null) {
                         this.addMessage("\u30C8\u30E9\u30C3\u30D7\u3060! " + trap.name + "!", EmphasisColor.INVERSE);
                         if (trap.range == TargetRange.ALL) {
-                            var addMessage = this.addMessage;
-                            this.users.forEach(function (x) {
+                            for (var i = 0; i < this.users.length; i++) {
+                                var user = this.users[i];
                                 var damage = trap.operate();
-                                x.life.sub(damage);
-                                addMessage(x.name + "\u306F " + damage + " \u306E\u88AB\u5BB3\u3092\u53D7\u3051\u305F.", EmphasisColor.DANGER);
-                            });
+                                user.life.sub(damage);
+                                this.addMessage(user.name + "\u306F " + damage + " \u306E\u88AB\u5BB3\u3092\u53D7\u3051\u305F.", EmphasisColor.DANGER);
+                            }
                         }
                         else {
                             var damage = trap.operate();
                             var userIndex = random(this.users.length) - 1;
                             var user = this.users[userIndex];
                             user.life.sub(damage);
-                            this.addMessage(user.name + "\u306F " + damage + " \u306E\u88AB\u5BB3\u3092\u53D7\u3051\u305F.", EmphasisColor.DANGER);
+                            if (user.life.max <= damage) {
+                                this.addMessage(user.name + "\u306E\u4F53\u306F\u30D0\u30E9\u30D0\u30E9\u306B\u3055\u308C\u305F!", EmphasisColor.DANGER);
+                            }
+                            else {
+                                this.addMessage(user.name + "\u306F " + damage + " \u306E\u88AB\u5BB3\u3092\u53D7\u3051\u305F.", EmphasisColor.DANGER);
+                            }
                         }
                     }
                     else {
                         this.addMessage('トラップだ! ...どうやら作動しなかったようだ.');
                     }
                     break;
-                case 6:
+                case 4:
                     this.addUserMessage('...');
                     break;
             }

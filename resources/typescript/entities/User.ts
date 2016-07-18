@@ -7,15 +7,22 @@ module entities {
     import ItemType = enums.ItemType;
     export class User extends LifeObject {
         public food: LimitedValue
+        public water: LimitedValue
         constructor(public name: string) {
             super(name)
             this.food = new LimitedValue(1000)
+            this.water = new LimitedValue(2000)
         }
         public flow() {
-            if (this.food.current < 1) {
-                this.life.current--
+            if (this.water.current < 1) {
+                this.life.sub(1)
             } else {
-                this.food.current--
+                this.water.sub(3)
+            }
+            if (this.food.current < 1) {
+                this.life.sub(1)
+            } else {
+                this.food.sub(2)
             }
         }
         public useItem(item: Item) {
