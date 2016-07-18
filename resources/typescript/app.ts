@@ -117,30 +117,41 @@ var appVm = new Vue({
                     break
                 default:
                     if (target.treasure != null) {
-                        this.addMessage('宝箱を見つけた!', EmphasisColor.INVERSE)
-                        this.addMessage(`${target.treasure.name}を手に入れた.`, EmphasisColor.SUCCESS)
-                        if (target.treasure.itemType == ItemType.TREASURE) {
-                            this.hasTreasure = true
-                            this.addUserMessage(`野郎ども引き上げるぞ! 出口を探せ!`)
-                        }
-                        target.treasure = null
+                        this.addMessage('宝箱を見つけた.', EmphasisColor.INVERSE)
                     } else if (target.spring != null) {
                         this.addMessage(`${target.spring.name}.`, EmphasisColor.INVERSE)
-                        for (var i = 0; i < this.users.length; i++) {
-                            var user = this.users[i]
-                            let amount = 100 - dice(2)
-                            user.water.add(amount)
-                        }
-                        target.spring.life.sub(1)
-                        this.addMessage('一行は水分を補給した.', EmphasisColor.SUCCESS)
-                        if (target.spring.life.current < 1) {
-                            this.addMessage(`${target.spring.name}は干上がった.`)
-                            target.spring = null
-                        }
                     } else {
-                        this.addMessage('何もない.')
+                        this.addMessage('ここには何もない.')
                     }
                     break
+            }
+            this.after()
+        },
+        take: function () {
+            var target = this.world.fields[this.position.y][this.position.x]
+            if (target.treasure != null) {
+                this.addMessage('宝箱を開けた.')
+                this.addMessage(`${target.treasure.name}を手に入れた.`, EmphasisColor.SUCCESS)
+                if (target.treasure.itemType == ItemType.TREASURE) {
+                    this.hasTreasure = true
+                    this.addUserMessage(`野郎ども引き上げるぞ! 出口を探せ!`)
+                }
+                target.treasure = null
+            } else if (target.spring != null) {
+                this.addMessage(`${target.spring.name}の水を飲んだ.`)
+                for (var i = 0; i < this.users.length; i++) {
+                    var user = this.users[i]
+                    let amount = 100 - dice(2)
+                    user.water.add(amount)
+                }
+                target.spring.life.sub(1)
+                this.addMessage('水分を補給した.', EmphasisColor.SUCCESS)
+                if (target.spring.life.current < 1) {
+                    this.addMessage(`${target.spring.name}は干上がった.`)
+                    target.spring = null
+                }
+            } else {
+                this.addMessage('ここには何もない.')
             }
             this.after()
         },
@@ -177,10 +188,6 @@ var appVm = new Vue({
         },
         useKey: function () {
             this.addMessage('鍵を持っていない.')
-            this.after()
-        },
-        watch: function () {
-            this.addMessage('時計を持っていない.')
             this.after()
         },
         compass: function () {

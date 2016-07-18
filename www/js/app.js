@@ -770,32 +770,45 @@ var appVm = new Vue({
                     break;
                 default:
                     if (target.treasure != null) {
-                        this.addMessage('宝箱を見つけた!', EmphasisColor.INVERSE);
-                        this.addMessage(target.treasure.name + "\u3092\u624B\u306B\u5165\u308C\u305F.", EmphasisColor.SUCCESS);
-                        if (target.treasure.itemType == ItemType.TREASURE) {
-                            this.hasTreasure = true;
-                            this.addUserMessage("\u91CE\u90CE\u3069\u3082\u5F15\u304D\u4E0A\u3052\u308B\u305E! \u51FA\u53E3\u3092\u63A2\u305B!");
-                        }
-                        target.treasure = null;
+                        this.addMessage('宝箱を見つけた.', EmphasisColor.INVERSE);
                     }
                     else if (target.spring != null) {
                         this.addMessage(target.spring.name + ".", EmphasisColor.INVERSE);
-                        for (var i = 0; i < this.users.length; i++) {
-                            var user = this.users[i];
-                            var amount = 100 - dice(2);
-                            user.water.add(amount);
-                        }
-                        target.spring.life.sub(1);
-                        this.addMessage('一行は水分を補給した.', EmphasisColor.SUCCESS);
-                        if (target.spring.life.current < 1) {
-                            this.addMessage(target.spring.name + "\u306F\u5E72\u4E0A\u304C\u3063\u305F.");
-                            target.spring = null;
-                        }
                     }
                     else {
-                        this.addMessage('何もない.');
+                        this.addMessage('ここには何もない.');
                     }
                     break;
+            }
+            this.after();
+        },
+        take: function () {
+            var target = this.world.fields[this.position.y][this.position.x];
+            if (target.treasure != null) {
+                this.addMessage('宝箱を開けた.');
+                this.addMessage(target.treasure.name + "\u3092\u624B\u306B\u5165\u308C\u305F.", EmphasisColor.SUCCESS);
+                if (target.treasure.itemType == ItemType.TREASURE) {
+                    this.hasTreasure = true;
+                    this.addUserMessage("\u91CE\u90CE\u3069\u3082\u5F15\u304D\u4E0A\u3052\u308B\u305E! \u51FA\u53E3\u3092\u63A2\u305B!");
+                }
+                target.treasure = null;
+            }
+            else if (target.spring != null) {
+                this.addMessage(target.spring.name + "\u306E\u6C34\u3092\u98F2\u3093\u3060.");
+                for (var i = 0; i < this.users.length; i++) {
+                    var user = this.users[i];
+                    var amount = 100 - dice(2);
+                    user.water.add(amount);
+                }
+                target.spring.life.sub(1);
+                this.addMessage('水分を補給した.', EmphasisColor.SUCCESS);
+                if (target.spring.life.current < 1) {
+                    this.addMessage(target.spring.name + "\u306F\u5E72\u4E0A\u304C\u3063\u305F.");
+                    target.spring = null;
+                }
+            }
+            else {
+                this.addMessage('ここには何もない.');
             }
             this.after();
         },
@@ -831,10 +844,6 @@ var appVm = new Vue({
         },
         useKey: function () {
             this.addMessage('鍵を持っていない.');
-            this.after();
-        },
-        watch: function () {
-            this.addMessage('時計を持っていない.');
             this.after();
         },
         compass: function () {
