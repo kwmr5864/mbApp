@@ -530,18 +530,21 @@ var entities;
         }
         Trap.random = function () {
             var trap = null;
-            switch (dice()) {
-                case 1:
+            switch (dice(2)) {
+                case 8:
                     trap = new Sling();
                     break;
-                case 2:
+                case 9:
                     trap = new Crossbow();
                     break;
-                case 3:
+                case 10:
                     trap = new Gas();
                     break;
-                case 4:
+                case 11:
                     trap = new Bomb();
+                    break;
+                case 12:
+                    trap = new Chainsaw();
                     break;
                 default:
                     break;
@@ -549,7 +552,7 @@ var entities;
             return trap;
         };
         Trap.prototype.operate = function () {
-            var damage = this.base + dice();
+            var damage = this.base - dice();
             return damage;
         };
         return Trap;
@@ -558,7 +561,7 @@ var entities;
     var Sling = (function (_super) {
         __extends(Sling, _super);
         function Sling() {
-            _super.call(this, '投石', TargetRange.ONE, 5);
+            _super.call(this, '投石', TargetRange.ONE, 10);
         }
         return Sling;
     }(Trap));
@@ -571,6 +574,14 @@ var entities;
         return Crossbow;
     }(Trap));
     entities.Crossbow = Crossbow;
+    var Chainsaw = (function (_super) {
+        __extends(Chainsaw, _super);
+        function Chainsaw() {
+            _super.call(this, 'チェーンソー', TargetRange.ONE, 10000);
+        }
+        return Chainsaw;
+    }(Trap));
+    entities.Chainsaw = Chainsaw;
     var Gas = (function (_super) {
         __extends(Gas, _super);
         function Gas() {
@@ -582,7 +593,7 @@ var entities;
     var Bomb = (function (_super) {
         __extends(Bomb, _super);
         function Bomb() {
-            _super.call(this, '爆弾', TargetRange.ALL, 50);
+            _super.call(this, '爆弾', TargetRange.ALL, 60);
         }
         return Bomb;
     }(Trap));
@@ -953,46 +964,60 @@ var appVm = new Vue({
         randomEvent: function () {
             switch (dice()) {
                 case 1:
-                    this.addUserMessage('いい天気だ.');
+                    this.addUserMessage('食い物が落ちてるぜ!');
+                    this.addMessage('保存のきかなさそうな果実で一行はわずかに腹を満たした.', EmphasisColor.SUCCESS);
+                    for (var i = 0; i < this.users.length; i++) {
+                        var user = this.users[i];
+                        var food = dice(2);
+                        user.food.add(food);
+                    }
                     break;
                 case 2:
-                    this.addUserMessage('何かが起こりそうな気がする...');
+                    this.addMessage('コウモリの群れだ!', EmphasisColor.INVERSE);
+                    switch (dice()) {
+                        case 1:
+                            this.addMessage('だが幸い食糧を奪われずに済んだ.');
+                            break;
+                        default:
+                            for (var i = 0; i < this.users.length; i++) {
+                                var user = this.users[i];
+                                var food = dice(2);
+                                user.food.sub(food);
+                            }
+                            this.addMessage('食糧を少し奪われてしまった...');
+                            break;
+                    }
                     break;
                 case 3:
-                    this.addUserMessage('油断するなよ.');
-                    break;
-                case 4:
-                    this.addMessage('食糧を拾った!', EmphasisColor.SUCCESS);
-                    this.users.forEach(function (x) {
-                        var food = dice(2);
-                        x.food.add(food);
-                    });
-                    break;
-                case 5:
                     var trap = Trap.random();
                     if (trap != null) {
                         this.addMessage("\u30C8\u30E9\u30C3\u30D7\u3060! " + trap.name + "!", EmphasisColor.INVERSE);
                         if (trap.range == TargetRange.ALL) {
-                            var addMessage = this.addMessage;
-                            this.users.forEach(function (x) {
+                            for (var i = 0; i < this.users.length; i++) {
+                                var user = this.users[i];
                                 var damage = trap.operate();
-                                x.life.sub(damage);
-                                addMessage(x.name + "\u306F " + damage + " \u306E\u88AB\u5BB3\u3092\u53D7\u3051\u305F.", EmphasisColor.DANGER);
-                            });
+                                user.life.sub(damage);
+                                this.addMessage(user.name + "\u306F " + damage + " \u306E\u88AB\u5BB3\u3092\u53D7\u3051\u305F.", EmphasisColor.DANGER);
+                            }
                         }
                         else {
                             var damage = trap.operate();
                             var userIndex = random(this.users.length) - 1;
                             var user = this.users[userIndex];
                             user.life.sub(damage);
-                            this.addMessage(user.name + "\u306F " + damage + " \u306E\u88AB\u5BB3\u3092\u53D7\u3051\u305F.", EmphasisColor.DANGER);
+                            if (user.life.max <= damage) {
+                                this.addMessage(user.name + "\u306E\u4F53\u306F\u30D0\u30E9\u30D0\u30E9\u306B\u3055\u308C\u305F!", EmphasisColor.DANGER);
+                            }
+                            else {
+                                this.addMessage(user.name + "\u306F " + damage + " \u306E\u88AB\u5BB3\u3092\u53D7\u3051\u305F.", EmphasisColor.DANGER);
+                            }
                         }
                     }
                     else {
                         this.addMessage('トラップだ! ...どうやら作動しなかったようだ.');
                     }
                     break;
-                case 6:
+                case 4:
                     this.addUserMessage('...');
                     break;
             }
