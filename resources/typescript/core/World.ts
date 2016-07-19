@@ -117,6 +117,12 @@ module core {
             return this.fields[targetPosition.y][targetPosition.x]
         }
 
+        public getBackCell(position: core.Position, direction: Direction): Cell {
+            var targetPosition = this.getBackPosition(position, direction)
+
+            return this.fields[targetPosition.y][targetPosition.x]
+        }
+
         public getLeftCell(position: core.Position, direction: Direction): Cell {
             var targetPosition = this.getLeftPosition(position, direction)
 
@@ -150,6 +156,34 @@ module core {
                 case Direction.WEST:
                     if (targetPosition.x < World.MIN_X) {
                         targetPosition.x = World.MAX_X
+                    }
+                    break
+            }
+
+            return targetPosition
+        }
+
+        public getBackPosition(position: core.Position, direction: Direction): core.Position {
+            var targetPosition = position.getBack(direction)
+            switch (direction) {
+                case Direction.NORTH:
+                    if (World.MAX_Y < targetPosition.y) {
+                        targetPosition.y = World.MIN_Y
+                    }
+                    break
+                case Direction.EAST:
+                    if (targetPosition.x < World.MIN_X) {
+                        targetPosition.x = World.MAX_X
+                    }
+                    break
+                case Direction.SOUTH:
+                    if (targetPosition.y < World.MIN_Y) {
+                        targetPosition.y = World.MAX_Y
+                    }
+                    break
+                case Direction.WEST:
+                    if (World.MAX_X < targetPosition.x) {
+                        targetPosition.x = World.MIN_X
                     }
                     break
             }

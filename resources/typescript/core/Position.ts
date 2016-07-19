@@ -67,5 +67,26 @@ module core {
             }
             return position
         }
+        getBack(direction: Direction): core.Position {
+            var position: core.Position
+            switch (direction) {
+                case Direction.NORTH:
+                    position = new core.Position(this.x, this.y + 1)
+                    break
+                case Direction.EAST:
+                    position = new core.Position(this.x - 1, this.y)
+                    break
+                case Direction.SOUTH:
+                    position = new core.Position(this.x, this.y - 1)
+                    break
+                case Direction.WEST:
+                    position = new core.Position(this.x + 1, this.y)
+                    break
+                default:
+                    position = new core.Position(-1, -1)
+                    break
+            }
+            return position
+        }
     }
 }

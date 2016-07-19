@@ -321,6 +321,27 @@ var core;
             }
             return position;
         };
+        Position.prototype.getBack = function (direction) {
+            var position;
+            switch (direction) {
+                case Direction.NORTH:
+                    position = new core.Position(this.x, this.y + 1);
+                    break;
+                case Direction.EAST:
+                    position = new core.Position(this.x - 1, this.y);
+                    break;
+                case Direction.SOUTH:
+                    position = new core.Position(this.x, this.y - 1);
+                    break;
+                case Direction.WEST:
+                    position = new core.Position(this.x + 1, this.y);
+                    break;
+                default:
+                    position = new core.Position(-1, -1);
+                    break;
+            }
+            return position;
+        };
         return Position;
     }());
     core.Position = Position;
@@ -418,6 +439,10 @@ var core;
             var targetPosition = this.getForwardPosition(position, direction);
             return this.fields[targetPosition.y][targetPosition.x];
         };
+        World.prototype.getBackCell = function (position, direction) {
+            var targetPosition = this.getBackPosition(position, direction);
+            return this.fields[targetPosition.y][targetPosition.x];
+        };
         World.prototype.getLeftCell = function (position, direction) {
             var targetPosition = this.getLeftPosition(position, direction);
             return this.fields[targetPosition.y][targetPosition.x];
@@ -447,6 +472,32 @@ var core;
                 case Direction.WEST:
                     if (targetPosition.x < World.MIN_X) {
                         targetPosition.x = World.MAX_X;
+                    }
+                    break;
+            }
+            return targetPosition;
+        };
+        World.prototype.getBackPosition = function (position, direction) {
+            var targetPosition = position.getBack(direction);
+            switch (direction) {
+                case Direction.NORTH:
+                    if (World.MAX_Y < targetPosition.y) {
+                        targetPosition.y = World.MIN_Y;
+                    }
+                    break;
+                case Direction.EAST:
+                    if (targetPosition.x < World.MIN_X) {
+                        targetPosition.x = World.MAX_X;
+                    }
+                    break;
+                case Direction.SOUTH:
+                    if (targetPosition.y < World.MIN_Y) {
+                        targetPosition.y = World.MAX_Y;
+                    }
+                    break;
+                case Direction.WEST:
+                    if (World.MAX_X < targetPosition.x) {
+                        targetPosition.x = World.MIN_X;
                     }
                     break;
             }
@@ -524,18 +575,18 @@ var entities;
             this.food = new LimitedValue(1000);
             this.water = new LimitedValue(2000);
         }
-        User.prototype.flow = function () {
+        User.prototype.flow = function (amount) {
             if (this.water.current < 1) {
                 this.life.sub(1);
             }
             else {
-                this.water.sub(3);
+                this.water.sub(amount * 2);
             }
             if (this.food.current < 1) {
                 this.life.sub(1);
             }
             else {
-                this.food.sub(2);
+                this.food.sub(amount);
             }
         };
         User.prototype.useItem = function (item) {
@@ -788,6 +839,7 @@ var appVm = new Vue({
                     this.addUserMessage('体調は万全だ!', user);
                 }
             }
+            this.flow(1);
             this.afterAction();
             this.after();
         },
@@ -810,13 +862,13 @@ var appVm = new Vue({
                     break;
                 default:
                     if (target.treasure != null) {
-                        this.addMessage(target.treasure.name + "\u304C\u3042\u308B.", EmphasisColor.INVERSE);
+                        this.addMessage(target.treasure.name + "\u3092\u898B\u3064\u3051\u305F.", EmphasisColor.INVERSE);
                     }
                     else if (target.spring != null) {
-                        this.addMessage(target.spring.name + "\u3060.", EmphasisColor.INVERSE);
+                        this.addMessage(target.spring.name + "\u304C\u6EA2\u308C\u3066\u3044\u308B...", EmphasisColor.INVERSE);
                     }
                     else {
-                        this.addMessage('ここには何もない.');
+                        this.addMessage('周囲には何もなかった.');
                     }
                     break;
             }
@@ -868,9 +920,10 @@ var appVm = new Vue({
                     this.addMessage(target.spring.name + "\u306F\u5E72\u4E0A\u304C\u3063\u305F.");
                     target.spring = null;
                 }
+                this.afterAction();
             }
             else {
-                this.addMessage('ここには何もない.');
+                this.addMessage('ここには手に取るようなものが何もない.');
             }
             this.after();
         },
@@ -916,6 +969,8 @@ var appVm = new Vue({
                         this.addMessage('箱が壊れてしまった...', EmphasisColor.INFO);
                     }
                 }
+                this.flow();
+                this.afterAction();
             }
             this.after();
         },
@@ -924,6 +979,7 @@ var appVm = new Vue({
             switch (target.field) {
                 case Field.FLAT:
                     this.addMessage('空を切った.');
+                    this.flow();
                     break;
                 case Field.BLOCK:
                 case Field.WALL:
@@ -950,7 +1006,7 @@ var appVm = new Vue({
                         target.field = Field.FLAT;
                         target.block = null;
                     }
-                    this.afterAction();
+                    this.flow(3);
                     break;
             }
             this.afterAction();
@@ -958,11 +1014,11 @@ var appVm = new Vue({
         },
         compass: function () {
             if (this.direction.enable) {
-                this.addMessage('コンパスを止めた.');
+                this.addMessage('コンパスを止めた.', EmphasisColor.INFO);
                 this.direction.enable = false;
             }
             else {
-                this.addMessage('コンパスを起動した.');
+                this.addMessage('コンパスを起動した.', EmphasisColor.INFO);
                 this.direction.enable = true;
             }
             this.after();
@@ -982,18 +1038,19 @@ var appVm = new Vue({
                         this.addMessage('前へ進んだ. 足元に何かある.', EmphasisColor.INFO);
                     }
                     else {
-                        this.addMessage('前へ進んだ.');
+                        this.addMessage('前へ進んだ.', EmphasisColor.INFO);
                     }
                     var forwardPosition = this.world.getForwardPosition(this.position, this.direction.value);
                     this.position = forwardPosition;
                     this.randomEvent();
+                    this.flow();
                     this.afterAction();
                     break;
             }
             this.after();
         },
         turnLeft: function () {
-            this.addMessage('左を向いた.');
+            this.addMessage('左を向いた.', EmphasisColor.INFO);
             switch (this.direction.value) {
                 case Direction.NORTH:
                     this.direction.value = Direction.WEST;
@@ -1013,7 +1070,7 @@ var appVm = new Vue({
             this.after();
         },
         turnRight: function () {
-            this.addMessage('右を向いた.');
+            this.addMessage('右を向いた.', EmphasisColor.INFO);
             switch (this.direction.value) {
                 case Direction.NORTH:
                     this.direction.value = Direction.EAST;
@@ -1032,22 +1089,21 @@ var appVm = new Vue({
             }
             this.after();
         },
-        turnBack: function () {
-            this.addMessage('後ろを向いた.');
-            switch (this.direction.value) {
-                case Direction.NORTH:
-                    this.direction.value = Direction.SOUTH;
+        moveBack: function () {
+            var target = this.world.getBackCell(this.position, this.direction.value);
+            switch (target.field) {
+                case Field.WALL:
+                case Field.BLOCK:
+                    this.addMessage('何かがあって通れない.', EmphasisColor.INFO);
                     break;
-                case Direction.EAST:
-                    this.direction.value = Direction.WEST;
-                    break;
-                case Direction.SOUTH:
-                    this.direction.value = Direction.NORTH;
-                    break;
-                case Direction.WEST:
-                    this.direction.value = Direction.EAST;
-                    break;
-                default:
+                case Field.FLAT:
+                case Field.GOAL:
+                    this.addMessage('後ろに下がった.', EmphasisColor.INFO);
+                    var targetPosition = this.world.getBackPosition(this.position, this.direction.value);
+                    this.position = targetPosition;
+                    this.randomEvent();
+                    this.flow(4);
+                    this.afterAction();
                     break;
             }
             this.after();
@@ -1057,14 +1113,15 @@ var appVm = new Vue({
             switch (target.field) {
                 case Field.WALL:
                 case Field.BLOCK:
-                    this.addMessage('何かがあって通れない.');
+                    this.addMessage('何かがあって通れない.', EmphasisColor.INFO);
                     break;
                 case Field.FLAT:
                 case Field.GOAL:
-                    this.addMessage('左へ移動した.');
-                    var forwardPosition = this.world.getLeftPosition(this.position, this.direction.value);
-                    this.position = forwardPosition;
+                    this.addMessage('左へ移動した.', EmphasisColor.INFO);
+                    var targetPosition = this.world.getLeftPosition(this.position, this.direction.value);
+                    this.position = targetPosition;
                     this.randomEvent();
+                    this.flow(3);
                     this.afterAction();
                     break;
             }
@@ -1075,22 +1132,30 @@ var appVm = new Vue({
             switch (target.field) {
                 case Field.WALL:
                 case Field.BLOCK:
-                    this.addMessage('何かがあって通れない.');
+                    this.addMessage('何かがあって通れない.', EmphasisColor.INFO);
                     break;
                 case Field.FLAT:
                 case Field.GOAL:
-                    this.addMessage('右へ移動した.');
-                    var forwardPosition = this.world.getRightPosition(this.position, this.direction.value);
-                    this.position = forwardPosition;
+                    this.addMessage('右へ移動した.', EmphasisColor.INFO);
+                    var targetPosition = this.world.getRightPosition(this.position, this.direction.value);
+                    this.position = targetPosition;
                     this.randomEvent();
+                    this.flow(3);
                     this.afterAction();
                     break;
+            }
+            this.after();
+        },
+        flow: function (amount) {
+            if (amount === void 0) { amount = 2; }
+            for (var i = 0; i < this.users.length; i++) {
+                var user = this.users[i];
+                user.flow(amount);
             }
         },
         afterAction: function () {
             for (var i = 0; i < this.users.length; i++) {
                 var user = this.users[i];
-                user.flow();
                 if (user.life.current < 1) {
                     this.addMessage(user.name + "\u306F\u606F\u7D76\u3048\u305F...", EmphasisColor.DANGER);
                     models.Users.delete(user.name);
