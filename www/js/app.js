@@ -57,20 +57,30 @@ var core;
         LimitedValue.prototype.isMax = function () {
             return this.max <= this.current;
         };
+        LimitedValue.prototype.impression = function () {
+            if (this.max <= this.current) {
+                return '';
+            }
+            else if (this.current < 5) {
+                return ' (瀕死)';
+            }
+            else if (this.current < 10) {
+                return ' (重傷)';
+            }
+            else if (this.current < 30) {
+                return ' (傷ついている)';
+            }
+            else if (this.current < 1000) {
+                return '';
+            }
+            else {
+                return ' (壊せそうにない)';
+            }
+        };
         return LimitedValue;
     }());
     core.LimitedValue = LimitedValue;
 })(core || (core = {}));
-var enums;
-(function (enums) {
-    (function (ItemType) {
-        ItemType[ItemType["TREASURE"] = 1] = "TREASURE";
-        ItemType[ItemType["OINTMENT"] = 2] = "OINTMENT";
-        ItemType[ItemType["MEAT"] = 3] = "MEAT";
-        ItemType[ItemType["PAPER"] = 4] = "PAPER";
-    })(enums.ItemType || (enums.ItemType = {}));
-    var ItemType = enums.ItemType;
-})(enums || (enums = {}));
 var entities;
 (function (entities) {
     var LimitedValue = core.LimitedValue;
@@ -79,21 +89,8 @@ var entities;
             if (_life === void 0) { _life = 100; }
             this.name = name;
             this._life = _life;
-            this.items = [];
-            this.itemLimit = 3;
             this.life = new LimitedValue(_life);
         }
-        LifeObject.prototype.addItem = function (item) {
-            if (this.items.length <= this.itemLimit) {
-                this.items.push(item);
-            }
-        };
-        LifeObject.prototype.addRandomItem = function () {
-            var item = entities.Item.getRandom();
-            if (item != null) {
-                this.addItem(item);
-            }
-        };
         return LifeObject;
     }());
     entities.LifeObject = LifeObject;
@@ -115,6 +112,73 @@ var utils;
     }
     utils.random = random;
 })(utils || (utils = {}));
+var entities;
+(function (entities) {
+    var dice = utils.dice;
+    var Block = (function (_super) {
+        __extends(Block, _super);
+        function Block(_name, _life, hasTreasure) {
+            if (hasTreasure === void 0) { hasTreasure = false; }
+            _super.call(this, _name, _life);
+            this._name = _name;
+            this._life = _life;
+            this.hasTreasure = hasTreasure;
+        }
+        return Block;
+    }(entities.LifeObject));
+    entities.Block = Block;
+    var Wall = (function (_super) {
+        __extends(Wall, _super);
+        function Wall() {
+            _super.call(this, faker.lorem.words(1) + "\u3068\u66F8\u304B\u308C\u305F\u58C1", 9999);
+        }
+        return Wall;
+    }(Block));
+    entities.Wall = Wall;
+    var Rock = (function (_super) {
+        __extends(Rock, _super);
+        function Rock() {
+            _super.call(this, faker.commerce.productAdjective() + "\u306A\u5CA9", 30 + dice());
+        }
+        return Rock;
+    }(Block));
+    entities.Rock = Rock;
+    var Tree = (function (_super) {
+        __extends(Tree, _super);
+        function Tree() {
+            _super.call(this, faker.commerce.productAdjective() + "\u306A\u6728", 10 + dice());
+        }
+        return Tree;
+    }(Block));
+    entities.Tree = Tree;
+    var WoodenBox = (function (_super) {
+        __extends(WoodenBox, _super);
+        function WoodenBox() {
+            _super.call(this, faker.lorem.words(1) + "\u3068\u66F8\u304B\u308C\u305F\u6728\u7BB1", 10 + dice(2), true);
+        }
+        return WoodenBox;
+    }(Block));
+    entities.WoodenBox = WoodenBox;
+    var Tussock = (function (_super) {
+        __extends(Tussock, _super);
+        function Tussock() {
+            _super.call(this, faker.commerce.color() + "\u306E\u8349\u3080\u3089", dice());
+        }
+        return Tussock;
+    }(Block));
+    entities.Tussock = Tussock;
+})(entities || (entities = {}));
+var enums;
+(function (enums) {
+    (function (ItemType) {
+        ItemType[ItemType["TREASURE"] = 1] = "TREASURE";
+        ItemType[ItemType["OINTMENT"] = 2] = "OINTMENT";
+        ItemType[ItemType["MEAT"] = 3] = "MEAT";
+        ItemType[ItemType["KEY"] = 4] = "KEY";
+        ItemType[ItemType["PAPER"] = 5] = "PAPER";
+    })(enums.ItemType || (enums.ItemType = {}));
+    var ItemType = enums.ItemType;
+})(enums || (enums = {}));
 var entities;
 (function (entities) {
     var ItemType = enums.ItemType;
@@ -149,11 +213,28 @@ var entities;
 })(entities || (entities = {}));
 var entities;
 (function (entities) {
+    var TreasureBox = (function (_super) {
+        __extends(TreasureBox, _super);
+        function TreasureBox(item, lock, unbreakable) {
+            if (lock === void 0) { lock = 0; }
+            if (unbreakable === void 0) { unbreakable = false; }
+            _super.call(this, faker.commerce.productMaterial() + "\u306E\u5B9D\u7BB1");
+            this.item = item;
+            this.lock = lock;
+            this.unbreakable = unbreakable;
+        }
+        return TreasureBox;
+    }(entities.LifeObject));
+    entities.TreasureBox = TreasureBox;
+})(entities || (entities = {}));
+var entities;
+(function (entities) {
     var Spring = (function (_super) {
         __extends(Spring, _super);
-        function Spring() {
-            var amount = Math.ceil(dice() / 2);
-            _super.call(this, faker.commerce.color() + "\u306E\u6E67\u304D\u6C34", amount);
+        function Spring(poison) {
+            if (poison === void 0) { poison = false; }
+            _super.call(this, faker.commerce.color() + "\u306E\u6E67\u304D\u6C34", Math.ceil(dice() / 2));
+            this.poison = poison;
         }
         return Spring;
     }(entities.LifeObject));
@@ -240,63 +321,31 @@ var core;
             }
             return position;
         };
+        Position.prototype.getBack = function (direction) {
+            var position;
+            switch (direction) {
+                case Direction.NORTH:
+                    position = new core.Position(this.x, this.y + 1);
+                    break;
+                case Direction.EAST:
+                    position = new core.Position(this.x - 1, this.y);
+                    break;
+                case Direction.SOUTH:
+                    position = new core.Position(this.x, this.y - 1);
+                    break;
+                case Direction.WEST:
+                    position = new core.Position(this.x + 1, this.y);
+                    break;
+                default:
+                    position = new core.Position(-1, -1);
+                    break;
+            }
+            return position;
+        };
         return Position;
     }());
     core.Position = Position;
 })(core || (core = {}));
-var entities;
-(function (entities) {
-    var dice = utils.dice;
-    var Block = (function (_super) {
-        __extends(Block, _super);
-        function Block(_name, _life) {
-            _super.call(this, _name + "\u300C" + faker.lorem.words(1) + "\u300D", _life);
-            this._name = _name;
-            this._life = _life;
-        }
-        return Block;
-    }(entities.LifeObject));
-    var Wall = (function (_super) {
-        __extends(Wall, _super);
-        function Wall() {
-            _super.call(this, '壁', 9999);
-        }
-        return Wall;
-    }(Block));
-    entities.Wall = Wall;
-    var Rock = (function (_super) {
-        __extends(Rock, _super);
-        function Rock() {
-            _super.call(this, '岩', 30 + dice());
-        }
-        return Rock;
-    }(Block));
-    entities.Rock = Rock;
-    var Tree = (function (_super) {
-        __extends(Tree, _super);
-        function Tree() {
-            _super.call(this, '木', 10 + dice());
-        }
-        return Tree;
-    }(Block));
-    entities.Tree = Tree;
-    var TreasureBox = (function (_super) {
-        __extends(TreasureBox, _super);
-        function TreasureBox() {
-            _super.call(this, '木箱', 10 + dice(2));
-        }
-        return TreasureBox;
-    }(Block));
-    entities.TreasureBox = TreasureBox;
-    var Tussock = (function (_super) {
-        __extends(Tussock, _super);
-        function Tussock() {
-            _super.call(this, '草むら', dice());
-        }
-        return Tussock;
-    }(Block));
-    entities.Tussock = Tussock;
-})(entities || (entities = {}));
 var core;
 (function (core) {
     var dice = utils.dice;
@@ -306,6 +355,7 @@ var core;
     var Cell = core.Cell;
     var Item = entities.Item;
     var Spring = entities.Spring;
+    var TreasureBox = entities.TreasureBox;
     var World = (function () {
         function World(name) {
             if (name === void 0) { name = ''; }
@@ -324,12 +374,19 @@ var core;
                     switch (dice()) {
                         case 4:
                             var item = Item.getRandom();
-                            if (item != null) {
-                                row[j].treasure = item;
-                            }
+                            var lock = dice() - 1;
+                            var treasureBox = new TreasureBox(item, lock);
+                            row[j].treasure = treasureBox;
                             break;
                         case 5:
-                            row[j].spring = new Spring();
+                            var poison = false;
+                            switch (dice()) {
+                                case 1:
+                                case 2:
+                                    poison = true;
+                                    break;
+                            }
+                            row[j].spring = new Spring(poison);
                             break;
                         case 6:
                             row[j].field = Field.BLOCK;
@@ -348,8 +405,7 @@ var core;
                                     row[j].block = new entities.Tussock();
                                     break;
                                 default:
-                                    row[j].block = new entities.TreasureBox();
-                                    row[j].block.addRandomItem();
+                                    row[j].block = new entities.WoodenBox();
                                     break;
                             }
                             break;
@@ -371,7 +427,9 @@ var core;
                     var treasureCell = this.fields[treasureY][treasureX];
                     treasureCell.field = Field.FLAT;
                     var treasure = new Item("\u79D8\u5B9D\u300C" + faker.commerce.productName() + "\u300D", ItemType.TREASURE);
-                    treasureCell.treasure = treasure;
+                    var lock = dice();
+                    var treasureBox = new TreasureBox(treasure, lock, true);
+                    treasureCell.treasure = treasureBox;
                     treasureCell.block = null;
                     ok = true;
                 }
@@ -379,6 +437,10 @@ var core;
         };
         World.prototype.getForwardCell = function (position, direction) {
             var targetPosition = this.getForwardPosition(position, direction);
+            return this.fields[targetPosition.y][targetPosition.x];
+        };
+        World.prototype.getBackCell = function (position, direction) {
+            var targetPosition = this.getBackPosition(position, direction);
             return this.fields[targetPosition.y][targetPosition.x];
         };
         World.prototype.getLeftCell = function (position, direction) {
@@ -410,6 +472,32 @@ var core;
                 case Direction.WEST:
                     if (targetPosition.x < World.MIN_X) {
                         targetPosition.x = World.MAX_X;
+                    }
+                    break;
+            }
+            return targetPosition;
+        };
+        World.prototype.getBackPosition = function (position, direction) {
+            var targetPosition = position.getBack(direction);
+            switch (direction) {
+                case Direction.NORTH:
+                    if (World.MAX_Y < targetPosition.y) {
+                        targetPosition.y = World.MIN_Y;
+                    }
+                    break;
+                case Direction.EAST:
+                    if (targetPosition.x < World.MIN_X) {
+                        targetPosition.x = World.MAX_X;
+                    }
+                    break;
+                case Direction.SOUTH:
+                    if (targetPosition.y < World.MIN_Y) {
+                        targetPosition.y = World.MAX_Y;
+                    }
+                    break;
+                case Direction.WEST:
+                    if (World.MAX_X < targetPosition.x) {
+                        targetPosition.x = World.MIN_X;
                     }
                     break;
             }
@@ -467,9 +555,9 @@ var core;
             }
             return targetPosition;
         };
-        World.MAX_X = 9;
+        World.MAX_X = 15;
         World.MIN_X = 0;
-        World.MAX_Y = 9;
+        World.MAX_Y = 15;
         World.MIN_Y = 0;
         return World;
     }());
@@ -487,18 +575,18 @@ var entities;
             this.food = new LimitedValue(1000);
             this.water = new LimitedValue(2000);
         }
-        User.prototype.flow = function () {
+        User.prototype.flow = function (amount) {
             if (this.water.current < 1) {
                 this.life.sub(1);
             }
             else {
-                this.water.sub(3);
+                this.water.sub(amount * 2);
             }
             if (this.food.current < 1) {
                 this.life.sub(1);
             }
             else {
-                this.food.sub(2);
+                this.food.sub(amount);
             }
         };
         User.prototype.useItem = function (item) {
@@ -682,6 +770,8 @@ var Trap = entities.Trap;
 var Users = models.Users;
 var User = entities.User;
 var ItemType = enums.ItemType;
+var Item = entities.Item;
+var TreasureBox = entities.TreasureBox;
 var appVm = new Vue({
     el: '#app',
     data: {
@@ -689,6 +779,7 @@ var appVm = new Vue({
         mainMessages: [],
         txt: '',
         users: models.Users.find(),
+        keyCount: 10,
         direction: {
             value: Direction.NORTH,
             display: '',
@@ -748,6 +839,7 @@ var appVm = new Vue({
                     this.addUserMessage('体調は万全だ!', user);
                 }
             }
+            this.flow(1);
             this.afterAction();
             this.after();
         },
@@ -770,13 +862,13 @@ var appVm = new Vue({
                     break;
                 default:
                     if (target.treasure != null) {
-                        this.addMessage('宝箱を見つけた.', EmphasisColor.INVERSE);
+                        this.addMessage(target.treasure.name + "\u3092\u898B\u3064\u3051\u305F.", EmphasisColor.INVERSE);
                     }
                     else if (target.spring != null) {
-                        this.addMessage(target.spring.name + ".", EmphasisColor.INVERSE);
+                        this.addMessage(target.spring.name + "\u304C\u6EA2\u308C\u3066\u3044\u308B...", EmphasisColor.INVERSE);
                     }
                     else {
-                        this.addMessage('ここには何もない.');
+                        this.addMessage('周囲には何もなかった.');
                     }
                     break;
             }
@@ -785,30 +877,100 @@ var appVm = new Vue({
         take: function () {
             var target = this.world.fields[this.position.y][this.position.x];
             if (target.treasure != null) {
-                this.addMessage('宝箱を開けた.');
-                this.addMessage(target.treasure.name + "\u3092\u624B\u306B\u5165\u308C\u305F.", EmphasisColor.SUCCESS);
-                if (target.treasure.itemType == ItemType.TREASURE) {
-                    this.hasTreasure = true;
-                    this.addUserMessage("\u91CE\u90CE\u3069\u3082\u5F15\u304D\u4E0A\u3052\u308B\u305E! \u51FA\u53E3\u3092\u63A2\u305B!");
+                if (0 < target.treasure.lock) {
+                    this.addMessage('鍵がかかっているようだ.');
                 }
-                target.treasure = null;
+                else {
+                    this.addMessage('箱を開けた.');
+                    var item = target.treasure.item;
+                    if (item != null) {
+                        this.addMessage(item.name + "\u3092\u624B\u306B\u5165\u308C\u305F.", EmphasisColor.SUCCESS);
+                        switch (item.itemType) {
+                            case ItemType.KEY:
+                                this.keyCount++;
+                                break;
+                            case ItemType.TREASURE:
+                                this.hasTreasure = true;
+                                this.addUserMessage("\u91CE\u90CE\u3069\u3082\u5F15\u304D\u4E0A\u3052\u308B\u305E! \u51FA\u53E3\u3092\u63A2\u305B!");
+                                break;
+                        }
+                        target.treasure.item = null;
+                    }
+                    else {
+                        this.addMessage('中はもぬけの殻だった...');
+                    }
+                }
             }
             else if (target.spring != null) {
-                this.addMessage(target.spring.name + "\u306E\u6C34\u3092\u98F2\u3093\u3060.");
+                this.addMessage(target.spring.name + "\u3092\u98F2\u3093\u3060.");
                 for (var i = 0; i < this.users.length; i++) {
                     var user = this.users[i];
-                    var amount = 100 - dice(2);
+                    var amount = dice(2);
                     user.water.add(amount);
+                    if (target.spring.poison) {
+                        user.life.sub(amount);
+                    }
                 }
                 target.spring.life.sub(1);
                 this.addMessage('水分を補給した.', EmphasisColor.SUCCESS);
+                if (target.spring.poison) {
+                    this.addMessage('しかしこれは汚水だ! 体調が悪くなった...', EmphasisColor.DANGER);
+                }
                 if (target.spring.life.current < 1) {
                     this.addMessage(target.spring.name + "\u306F\u5E72\u4E0A\u304C\u3063\u305F.");
                     target.spring = null;
                 }
+                this.afterAction();
             }
             else {
-                this.addMessage('ここには何もない.');
+                this.addMessage('ここには手に取るようなものが何もない.');
+            }
+            this.after();
+        },
+        useKey: function () {
+            var target = this.world.fields[this.position.y][this.position.x];
+            if (this.keyCount < 1) {
+                this.addMessage('鍵を持っていない.');
+            }
+            else if (target.treasure == null) {
+                this.addMessage('鍵を使う場所がない.');
+            }
+            else if (target.treasure.lock < 1) {
+                this.addMessage('この箱は既に鍵が外れている.');
+            }
+            else if (target.treasure.life.current < 1) {
+                this.addMessage('この箱は壊れてしまったのでもう開けられないだろう...');
+            }
+            else {
+                switch (dice()) {
+                    case 1:
+                    case 2:
+                        this.addMessage('鍵を1つこじ開けた.', EmphasisColor.INFO);
+                        target.treasure.lock--;
+                        break;
+                    default:
+                        this.addMessage('中々開かない...');
+                        break;
+                }
+                switch (dice()) {
+                    case 1:
+                    case 2:
+                        this.addMessage("\u9375\u304C\u6298\u308C\u305F. (" + this.keyCount + ")", EmphasisColor.INFO);
+                        this.keyCount--;
+                        break;
+                }
+                if (target.treasure.lock < 1) {
+                    this.addMessage('箱が開いた!', EmphasisColor.SUCCESS);
+                }
+                else if (!target.treasure.unbreakable) {
+                    var damage = dice();
+                    target.treasure.life.sub(damage);
+                    if (target.treasure.life.current < 1) {
+                        this.addMessage('箱が壊れてしまった...', EmphasisColor.INFO);
+                    }
+                }
+                this.flow();
+                this.afterAction();
             }
             this.after();
         },
@@ -817,6 +979,7 @@ var appVm = new Vue({
             switch (target.field) {
                 case Field.FLAT:
                     this.addMessage('空を切った.');
+                    this.flow();
                     break;
                 case Field.BLOCK:
                 case Field.WALL:
@@ -829,30 +992,33 @@ var appVm = new Vue({
                     });
                     if (target.block.life.current < 1) {
                         this.addMessage(targetName + "\u3092\u7834\u58CA.");
-                        if (0 < target.block.items.length) {
-                            this.addMessage('目の前に何かが落ちた.', EmphasisColor.SUCCESS);
-                            target.treasure = target.block.items[0];
+                        if (target.block.hasTreasure) {
+                            switch (dice()) {
+                                case 1:
+                                case 2:
+                                    this.addMessage('目の前に何かが落ちた.', EmphasisColor.SUCCESS);
+                                    var item = Item.getRandom();
+                                    var lock = dice() - 1;
+                                    target.treasure = new TreasureBox(item, lock);
+                                    break;
+                            }
                         }
                         target.field = Field.FLAT;
                         target.block = null;
                     }
-                    this.afterAction();
+                    this.flow(3);
                     break;
             }
             this.afterAction();
             this.after();
         },
-        useKey: function () {
-            this.addMessage('鍵を持っていない.');
-            this.after();
-        },
         compass: function () {
             if (this.direction.enable) {
-                this.addMessage('コンパスを止めた.');
+                this.addMessage('コンパスを止めた.', EmphasisColor.INFO);
                 this.direction.enable = false;
             }
             else {
-                this.addMessage('コンパスを起動した.');
+                this.addMessage('コンパスを起動した.', EmphasisColor.INFO);
                 this.direction.enable = true;
             }
             this.after();
@@ -863,7 +1029,7 @@ var appVm = new Vue({
                 case Field.WALL:
                 case Field.BLOCK:
                     var targetName = target.block.name;
-                    this.addMessage("\u76EE\u306E\u524D\u306B" + targetName + ". (" + target.block.life.current + ")", EmphasisColor.INVERSE);
+                    this.addMessage("\u76EE\u306E\u524D\u306B" + targetName + "." + target.block.life.impression(), EmphasisColor.INVERSE);
                     break;
                 case Field.FLAT:
                 case Field.GOAL:
@@ -872,18 +1038,19 @@ var appVm = new Vue({
                         this.addMessage('前へ進んだ. 足元に何かある.', EmphasisColor.INFO);
                     }
                     else {
-                        this.addMessage('前へ進んだ.');
+                        this.addMessage('前へ進んだ.', EmphasisColor.INFO);
                     }
                     var forwardPosition = this.world.getForwardPosition(this.position, this.direction.value);
                     this.position = forwardPosition;
                     this.randomEvent();
+                    this.flow();
                     this.afterAction();
                     break;
             }
             this.after();
         },
         turnLeft: function () {
-            this.addMessage('左を向いた.');
+            this.addMessage('左を向いた.', EmphasisColor.INFO);
             switch (this.direction.value) {
                 case Direction.NORTH:
                     this.direction.value = Direction.WEST;
@@ -903,7 +1070,7 @@ var appVm = new Vue({
             this.after();
         },
         turnRight: function () {
-            this.addMessage('右を向いた.');
+            this.addMessage('右を向いた.', EmphasisColor.INFO);
             switch (this.direction.value) {
                 case Direction.NORTH:
                     this.direction.value = Direction.EAST;
@@ -922,22 +1089,21 @@ var appVm = new Vue({
             }
             this.after();
         },
-        turnBack: function () {
-            this.addMessage('後ろを向いた.');
-            switch (this.direction.value) {
-                case Direction.NORTH:
-                    this.direction.value = Direction.SOUTH;
+        moveBack: function () {
+            var target = this.world.getBackCell(this.position, this.direction.value);
+            switch (target.field) {
+                case Field.WALL:
+                case Field.BLOCK:
+                    this.addMessage('何かがあって通れない.', EmphasisColor.INFO);
                     break;
-                case Direction.EAST:
-                    this.direction.value = Direction.WEST;
-                    break;
-                case Direction.SOUTH:
-                    this.direction.value = Direction.NORTH;
-                    break;
-                case Direction.WEST:
-                    this.direction.value = Direction.EAST;
-                    break;
-                default:
+                case Field.FLAT:
+                case Field.GOAL:
+                    this.addMessage('後ろに下がった.', EmphasisColor.INFO);
+                    var targetPosition = this.world.getBackPosition(this.position, this.direction.value);
+                    this.position = targetPosition;
+                    this.randomEvent();
+                    this.flow(4);
+                    this.afterAction();
                     break;
             }
             this.after();
@@ -947,14 +1113,15 @@ var appVm = new Vue({
             switch (target.field) {
                 case Field.WALL:
                 case Field.BLOCK:
-                    this.addMessage('何かがあって通れない.');
+                    this.addMessage('何かがあって通れない.', EmphasisColor.INFO);
                     break;
                 case Field.FLAT:
                 case Field.GOAL:
-                    this.addMessage('左へ移動した.');
-                    var forwardPosition = this.world.getLeftPosition(this.position, this.direction.value);
-                    this.position = forwardPosition;
+                    this.addMessage('左へ移動した.', EmphasisColor.INFO);
+                    var targetPosition = this.world.getLeftPosition(this.position, this.direction.value);
+                    this.position = targetPosition;
                     this.randomEvent();
+                    this.flow(3);
                     this.afterAction();
                     break;
             }
@@ -965,22 +1132,30 @@ var appVm = new Vue({
             switch (target.field) {
                 case Field.WALL:
                 case Field.BLOCK:
-                    this.addMessage('何かがあって通れない.');
+                    this.addMessage('何かがあって通れない.', EmphasisColor.INFO);
                     break;
                 case Field.FLAT:
                 case Field.GOAL:
-                    this.addMessage('右へ移動した.');
-                    var forwardPosition = this.world.getRightPosition(this.position, this.direction.value);
-                    this.position = forwardPosition;
+                    this.addMessage('右へ移動した.', EmphasisColor.INFO);
+                    var targetPosition = this.world.getRightPosition(this.position, this.direction.value);
+                    this.position = targetPosition;
                     this.randomEvent();
+                    this.flow(3);
                     this.afterAction();
                     break;
+            }
+            this.after();
+        },
+        flow: function (amount) {
+            if (amount === void 0) { amount = 2; }
+            for (var i = 0; i < this.users.length; i++) {
+                var user = this.users[i];
+                user.flow(amount);
             }
         },
         afterAction: function () {
             for (var i = 0; i < this.users.length; i++) {
                 var user = this.users[i];
-                user.flow();
                 if (user.life.current < 1) {
                     this.addMessage(user.name + "\u306F\u606F\u7D76\u3048\u305F...", EmphasisColor.DANGER);
                     models.Users.delete(user.name);
@@ -991,6 +1166,7 @@ var appVm = new Vue({
             this.users = models.Users.find();
         },
         after: function () {
+            this.topMessage = "\u4F4D\u7F6E: (" + this.position.x + "," + this.position.y + ")";
             if (this.users.length < 1) {
                 this.direction.enable = false;
             }
@@ -1053,13 +1229,13 @@ var appVm = new Vue({
                     }
                     break;
                 case 4:
-                    this.addUserMessage('...');
+                    this.keyCount++;
+                    this.addUserMessage("\u3061\u3063\u307D\u3051\u306A\u9375\u304C\u843D\u3061\u3066\u3044\u308B. \u8CB0\u3063\u3066\u304A\u3053\u3046. (" + this.keyCount + ")");
                     break;
             }
         },
         addMessage: function (message, emphasis) {
             if (emphasis === void 0) { emphasis = EmphasisColor.DEFAULT; }
-            this.topMessage = "\u4F4D\u7F6E: (" + this.position.x + "," + this.position.y + ")";
             if (4 < this.mainMessages.length) {
                 this.mainMessages.shift();
             }

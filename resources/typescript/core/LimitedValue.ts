@@ -19,5 +19,20 @@ module core {
         public isMax(): boolean {
             return this.max <= this.current
         }
+        public impression(): string {
+            if (this.max <= this.current) {
+                return ''
+            } else if (this.current < 5) {
+                return ' (瀕死)'
+            } else if (this.current < 10) {
+                return ' (重傷)'
+            } else if (this.current < 30) {
+                return ' (傷ついている)'
+            } else if (this.current < 1000) {
+                return ''
+            } else {
+                return ' (壊せそうにない)'
+            }
+        }
     }
 }

@@ -12,6 +12,7 @@
 ///<reference path="../entities/Blocks.ts"/>
 ///<reference path="../entities/Item.ts"/>
 ///<reference path="../entities/Spring.ts"/>
+///<reference path="../entities/TreasureBox.ts"/>
 
 module core {
     import dice = utils.dice
@@ -21,11 +22,12 @@ module core {
     import Cell = core.Cell
     import Item = entities.Item
     import Spring = entities.Spring
+    import TreasureBox = entities.TreasureBox;
 
     export class World {
-        public static MAX_X = 9
+        public static MAX_X = 15
         public static MIN_X = 0
-        public static MAX_Y = 9
+        public static MAX_Y = 15
         public static MIN_Y = 0
 
         public fields: Cell[][]
@@ -46,12 +48,19 @@ module core {
                     switch (dice()) {
                         case 4:
                             var item = Item.getRandom()
-                            if (item != null) {
-                                row[j].treasure = item
-                            }
+                            let lock = dice() - 1
+                            var treasureBox = new TreasureBox(item, lock)
+                            row[j].treasure = treasureBox
                             break
                         case 5:
-                            row[j].spring = new Spring()
+                            var poison = false
+                            switch (dice()) {
+                                case 1:
+                                case 2:
+                                    poison = true
+                                    break
+                            }
+                            row[j].spring = new Spring(poison)
                             break
                         case 6:
                             row[j].field = Field.BLOCK
@@ -70,8 +79,7 @@ module core {
                                     row[j].block = new entities.Tussock()
                                     break
                                 default:
-                                    row[j].block = new entities.TreasureBox()
-                                    row[j].block.addRandomItem()
+                                    row[j].block = new entities.WoodenBox()
                                     break
                             }
                             break
@@ -94,7 +102,9 @@ module core {
                     var treasureCell = this.fields[treasureY][treasureX]
                     treasureCell.field = Field.FLAT
                     var treasure = new Item(`秘宝「${faker.commerce.productName()}」`, ItemType.TREASURE)
-                    treasureCell.treasure = treasure
+                    let lock = dice()
+                    var treasureBox = new TreasureBox(treasure, lock, true)
+                    treasureCell.treasure = treasureBox
                     treasureCell.block = null
                     ok = true
                 }
@@ -103,6 +113,12 @@ module core {
 
         public getForwardCell(position: core.Position, direction: Direction): Cell {
             var targetPosition = this.getForwardPosition(position, direction)
+
+            return this.fields[targetPosition.y][targetPosition.x]
+        }
+
+        public getBackCell(position: core.Position, direction: Direction): Cell {
+            var targetPosition = this.getBackPosition(position, direction)
 
             return this.fields[targetPosition.y][targetPosition.x]
         }
@@ -140,6 +156,34 @@ module core {
                 case Direction.WEST:
                     if (targetPosition.x < World.MIN_X) {
                         targetPosition.x = World.MAX_X
+                    }
+                    break
+            }
+
+            return targetPosition
+        }
+
+        public getBackPosition(position: core.Position, direction: Direction): core.Position {
+            var targetPosition = position.getBack(direction)
+            switch (direction) {
+                case Direction.NORTH:
+                    if (World.MAX_Y < targetPosition.y) {
+                        targetPosition.y = World.MIN_Y
+                    }
+                    break
+                case Direction.EAST:
+                    if (targetPosition.x < World.MIN_X) {
+                        targetPosition.x = World.MAX_X
+                    }
+                    break
+                case Direction.SOUTH:
+                    if (targetPosition.y < World.MIN_Y) {
+                        targetPosition.y = World.MAX_Y
+                    }
+                    break
+                case Direction.WEST:
+                    if (World.MAX_X < targetPosition.x) {
+                        targetPosition.x = World.MIN_X
                     }
                     break
             }

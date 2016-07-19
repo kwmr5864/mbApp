@@ -30,6 +30,8 @@ import Trap = entities.Trap
 import Users = models.Users
 import User = entities.User
 import ItemType = enums.ItemType;
+import Item = entities.Item;
+import TreasureBox = entities.TreasureBox;
 
 var appVm = new Vue({
     el: '#app',
@@ -38,6 +40,7 @@ var appVm = new Vue({
         mainMessages: [],
         txt: '',
         users: models.Users.find(),
+        keyCount: 10,
         direction: {
             value: Direction.NORTH,
             display: '',
@@ -96,6 +99,7 @@ var appVm = new Vue({
                     this.addUserMessage('体調は万全だ!', user)
                 }
             }
+            this.flow(1)
             this.afterAction()
             this.after()
         },
@@ -117,11 +121,11 @@ var appVm = new Vue({
                     break
                 default:
                     if (target.treasure != null) {
-                        this.addMessage('宝箱を見つけた.', EmphasisColor.INVERSE)
+                        this.addMessage(`${target.treasure.name}を見つけた.`, EmphasisColor.INVERSE)
                     } else if (target.spring != null) {
-                        this.addMessage(`${target.spring.name}.`, EmphasisColor.INVERSE)
+                        this.addMessage(`${target.spring.name}が溢れている...`, EmphasisColor.INVERSE)
                     } else {
-                        this.addMessage('ここには何もない.')
+                        this.addMessage('周囲には何もなかった.')
                     }
                     break
             }
@@ -130,28 +134,91 @@ var appVm = new Vue({
         take: function () {
             var target = this.world.fields[this.position.y][this.position.x]
             if (target.treasure != null) {
-                this.addMessage('宝箱を開けた.')
-                this.addMessage(`${target.treasure.name}を手に入れた.`, EmphasisColor.SUCCESS)
-                if (target.treasure.itemType == ItemType.TREASURE) {
-                    this.hasTreasure = true
-                    this.addUserMessage(`野郎ども引き上げるぞ! 出口を探せ!`)
+                if (0 < target.treasure.lock) {
+                    this.addMessage('鍵がかかっているようだ.')
+                } else {
+                    this.addMessage('箱を開けた.')
+                    var item = target.treasure.item
+                    if (item != null) {
+                        this.addMessage(`${item.name}を手に入れた.`, EmphasisColor.SUCCESS)
+                        switch (item.itemType) {
+                            case ItemType.KEY:
+                                this.keyCount++
+                                break
+                            case ItemType.TREASURE:
+                                this.hasTreasure = true
+                                this.addUserMessage(`野郎ども引き上げるぞ! 出口を探せ!`)
+                                break
+                        }
+                        target.treasure.item = null
+                    } else {
+                        this.addMessage('中はもぬけの殻だった...')
+                    }
                 }
-                target.treasure = null
             } else if (target.spring != null) {
-                this.addMessage(`${target.spring.name}の水を飲んだ.`)
+                this.addMessage(`${target.spring.name}を飲んだ.`)
                 for (var i = 0; i < this.users.length; i++) {
                     var user = this.users[i]
-                    let amount = 100 - dice(2)
+                    let amount = dice(2)
                     user.water.add(amount)
+                    if (target.spring.poison) {
+                        user.life.sub(amount)
+                    }
                 }
                 target.spring.life.sub(1)
                 this.addMessage('水分を補給した.', EmphasisColor.SUCCESS)
+                if (target.spring.poison) {
+                    this.addMessage('しかしこれは汚水だ! 体調が悪くなった...', EmphasisColor.DANGER)
+                }
                 if (target.spring.life.current < 1) {
                     this.addMessage(`${target.spring.name}は干上がった.`)
                     target.spring = null
                 }
+                this.afterAction()
             } else {
-                this.addMessage('ここには何もない.')
+                this.addMessage('ここには手に取るようなものが何もない.')
+            }
+            this.after()
+        },
+        useKey: function () {
+            var target = this.world.fields[this.position.y][this.position.x]
+            if (this.keyCount < 1) {
+                this.addMessage('鍵を持っていない.')
+            } else if (target.treasure == null) {
+                this.addMessage('鍵を使う場所がない.')
+            } else if (target.treasure.lock < 1) {
+                this.addMessage('この箱は既に鍵が外れている.')
+            } else if (target.treasure.life.current < 1) {
+                this.addMessage('この箱は壊れてしまったのでもう開けられないだろう...')
+            } else {
+                switch (dice()) {
+                    case 1:
+                    case 2:
+                        this.addMessage('鍵を1つこじ開けた.', EmphasisColor.INFO)
+                        target.treasure.lock--
+                        break
+                    default:
+                        this.addMessage('中々開かない...')
+                        break
+                }
+                switch (dice()) {
+                    case 1:
+                    case 2:
+                        this.addMessage(`鍵が折れた. (${this.keyCount})`, EmphasisColor.INFO)
+                        this.keyCount--
+                        break
+                }
+                if (target.treasure.lock < 1) {
+                    this.addMessage('箱が開いた!', EmphasisColor.SUCCESS)
+                } else if (!target.treasure.unbreakable) {
+                    let damage = dice()
+                    target.treasure.life.sub(damage)
+                    if (target.treasure.life.current < 1) {
+                        this.addMessage('箱が壊れてしまった...', EmphasisColor.INFO)
+                    }
+                }
+                this.flow()
+                this.afterAction()
             }
             this.after()
         },
@@ -160,6 +227,7 @@ var appVm = new Vue({
             switch (target.field) {
                 case Field.FLAT:
                     this.addMessage('空を切った.')
+                    this.flow()
                     break
                 case Field.BLOCK:
                 case Field.WALL:
@@ -172,30 +240,32 @@ var appVm = new Vue({
                     })
                     if (target.block.life.current < 1) {
                         this.addMessage(`${targetName}を破壊.`)
-                        if (0 < target.block.items.length) {
-                            // TODO: 所有のアイテムからランダムで設置する
-                            this.addMessage('目の前に何かが落ちた.', EmphasisColor.SUCCESS)
-                            target.treasure = target.block.items[0]
+                        if (target.block.hasTreasure) {
+                            switch (dice()) {
+                                case 1:
+                                case 2:
+                                    this.addMessage('目の前に何かが落ちた.', EmphasisColor.SUCCESS)
+                                    var item = Item.getRandom()
+                                    let lock = dice() - 1
+                                    target.treasure = new TreasureBox(item, lock)
+                                    break
+                            }
                         }
                         target.field = Field.FLAT
                         target.block = null
                     }
-                    this.afterAction()
+                    this.flow(3)
                     break
             }
             this.afterAction()
             this.after()
         },
-        useKey: function () {
-            this.addMessage('鍵を持っていない.')
-            this.after()
-        },
         compass: function () {
             if (this.direction.enable) {
-                this.addMessage('コンパスを止めた.')
+                this.addMessage('コンパスを止めた.', EmphasisColor.INFO)
                 this.direction.enable = false
             } else {
-                this.addMessage('コンパスを起動した.')
+                this.addMessage('コンパスを起動した.', EmphasisColor.INFO)
                 this.direction.enable = true
             }
             this.after()
@@ -206,7 +276,7 @@ var appVm = new Vue({
                 case Field.WALL:
                 case Field.BLOCK:
                     var targetName = target.block.name
-                    this.addMessage(`目の前に${targetName}. (${target.block.life.current})`, EmphasisColor.INVERSE)
+                    this.addMessage(`目の前に${targetName}.${target.block.life.impression()}`, EmphasisColor.INVERSE)
                     break
                 case Field.FLAT:
                 case Field.GOAL:
@@ -214,18 +284,19 @@ var appVm = new Vue({
                     if (forwardCell.treasure != null || forwardCell.spring != null) {
                         this.addMessage('前へ進んだ. 足元に何かある.', EmphasisColor.INFO)
                     } else {
-                        this.addMessage('前へ進んだ.')
+                        this.addMessage('前へ進んだ.', EmphasisColor.INFO)
                     }
                     var forwardPosition = this.world.getForwardPosition(this.position, this.direction.value)
                     this.position = forwardPosition
                     this.randomEvent()
+                    this.flow()
                     this.afterAction()
                     break
             }
             this.after()
         },
         turnLeft: function () {
-            this.addMessage('左を向いた.')
+            this.addMessage('左を向いた.', EmphasisColor.INFO)
             switch (this.direction.value) {
                 case Direction.NORTH:
                     this.direction.value = Direction.WEST
@@ -245,7 +316,7 @@ var appVm = new Vue({
             this.after()
         },
         turnRight: function () {
-            this.addMessage('右を向いた.')
+            this.addMessage('右を向いた.', EmphasisColor.INFO)
             switch (this.direction.value) {
                 case Direction.NORTH:
                     this.direction.value  = Direction.EAST
@@ -264,22 +335,21 @@ var appVm = new Vue({
             }
             this.after()
         },
-        turnBack: function () {
-            this.addMessage('後ろを向いた.')
-            switch (this.direction.value) {
-                case Direction.NORTH:
-                    this.direction.value = Direction.SOUTH
+        moveBack: function () {
+            var target = this.world.getBackCell(this.position, this.direction.value)
+            switch (target.field) {
+                case Field.WALL:
+                case Field.BLOCK:
+                    this.addMessage('何かがあって通れない.', EmphasisColor.INFO)
                     break
-                case Direction.EAST:
-                    this.direction.value = Direction.WEST
-                    break
-                case Direction.SOUTH:
-                    this.direction.value = Direction.NORTH
-                    break
-                case Direction.WEST:
-                    this.direction.value = Direction.EAST
-                    break
-                default:
+                case Field.FLAT:
+                case Field.GOAL:
+                    this.addMessage('後ろに下がった.', EmphasisColor.INFO)
+                    var targetPosition = this.world.getBackPosition(this.position, this.direction.value)
+                    this.position = targetPosition
+                    this.randomEvent()
+                    this.flow(4)
+                    this.afterAction()
                     break
             }
             this.after()
@@ -289,14 +359,15 @@ var appVm = new Vue({
             switch (target.field) {
                 case Field.WALL:
                 case Field.BLOCK:
-                    this.addMessage('何かがあって通れない.')
+                    this.addMessage('何かがあって通れない.', EmphasisColor.INFO)
                     break
                 case Field.FLAT:
                 case Field.GOAL:
-                    this.addMessage('左へ移動した.')
-                    var forwardPosition = this.world.getLeftPosition(this.position, this.direction.value)
-                    this.position = forwardPosition
+                    this.addMessage('左へ移動した.', EmphasisColor.INFO)
+                    var targetPosition = this.world.getLeftPosition(this.position, this.direction.value)
+                    this.position = targetPosition
                     this.randomEvent()
+                    this.flow(3)
                     this.afterAction()
                     break
             }
@@ -307,22 +378,29 @@ var appVm = new Vue({
             switch (target.field) {
                 case Field.WALL:
                 case Field.BLOCK:
-                    this.addMessage('何かがあって通れない.')
+                    this.addMessage('何かがあって通れない.', EmphasisColor.INFO)
                     break
                 case Field.FLAT:
                 case Field.GOAL:
-                    this.addMessage('右へ移動した.')
-                    var forwardPosition = this.world.getRightPosition(this.position, this.direction.value)
-                    this.position = forwardPosition
+                    this.addMessage('右へ移動した.', EmphasisColor.INFO)
+                    var targetPosition = this.world.getRightPosition(this.position, this.direction.value)
+                    this.position = targetPosition
                     this.randomEvent()
+                    this.flow(3)
                     this.afterAction()
                     break
+            }
+            this.after()
+        },
+        flow: function (amount: number = 2) {
+            for (var i = 0; i < this.users.length; i++) {
+                var user = this.users[i]
+                user.flow(amount)
             }
         },
         afterAction: function() {
             for (var i = 0; i < this.users.length; i++) {
                 var user = this.users[i]
-                user.flow()
                 if (user.life.current < 1) {
                     this.addMessage(`${user.name}は息絶えた...`, EmphasisColor.DANGER)
                     models.Users.delete(user.name)
@@ -333,6 +411,7 @@ var appVm = new Vue({
             this.users = models.Users.find()
         },
         after: function () {
+            this.topMessage = `位置: (${this.position.x},${this.position.y})`
             if (this.users.length < 1) {
                 this.direction.enable = false
             }
@@ -392,12 +471,12 @@ var appVm = new Vue({
                     }
                     break
                 case 4:
-                    this.addUserMessage('...')
+                    this.keyCount++
+                    this.addUserMessage(`ちっぽけな鍵が落ちている. 貰っておこう. (${this.keyCount})`)
                     break
             }
         },
         addMessage: function (message: string, emphasis: EmphasisColor = EmphasisColor.DEFAULT) {
-            this.topMessage = `位置: (${this.position.x},${this.position.y})`
             if (4 < this.mainMessages.length) {
                 this.mainMessages.shift()
             }

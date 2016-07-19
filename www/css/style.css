@@ -23,7 +23,8 @@
   background-color: ghostwhite; }
   #app .inverse {
     color: white;
-    background-color: black; }
+    background-color: black;
+    text-align: center; }
   #app .danger {
     color: red; }
   #app .alert {

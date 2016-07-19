@@ -13,16 +13,16 @@ module entities {
             this.food = new LimitedValue(1000)
             this.water = new LimitedValue(2000)
         }
-        public flow() {
+        public flow(amount: number) {
             if (this.water.current < 1) {
                 this.life.sub(1)
             } else {
-                this.water.sub(3)
+                this.water.sub(amount * 2)
             }
             if (this.food.current < 1) {
                 this.life.sub(1)
             } else {
-                this.food.sub(2)
+                this.food.sub(amount)
             }
         }
         public useItem(item: Item) {

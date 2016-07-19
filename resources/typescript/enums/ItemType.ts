@@ -3,6 +3,7 @@ module enums {
         TREASURE = 1,
         OINTMENT,
         MEAT,
+        KEY,
         PAPER,
     }
 }
