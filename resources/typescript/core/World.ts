@@ -25,9 +25,9 @@ module core {
     import TreasureBox = entities.TreasureBox;
 
     export class World {
-        public static MAX_X = 9
+        public static MAX_X = 15
         public static MIN_X = 0
-        public static MAX_Y = 9
+        public static MAX_Y = 15
         public static MIN_Y = 0
 
         public fields: Cell[][]
@@ -53,7 +53,14 @@ module core {
                             row[j].treasure = treasureBox
                             break
                         case 5:
-                            row[j].spring = new Spring()
+                            var poison = false
+                            switch (dice()) {
+                                case 1:
+                                case 2:
+                                    poison = true
+                                    break
+                            }
+                            row[j].spring = new Spring(poison)
                             break
                         case 6:
                             row[j].field = Field.BLOCK

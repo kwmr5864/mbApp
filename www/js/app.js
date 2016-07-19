@@ -57,6 +57,26 @@ var core;
         LimitedValue.prototype.isMax = function () {
             return this.max <= this.current;
         };
+        LimitedValue.prototype.impression = function () {
+            if (this.max <= this.current) {
+                return '';
+            }
+            else if (this.current < 5) {
+                return ' (瀕死)';
+            }
+            else if (this.current < 10) {
+                return ' (重傷)';
+            }
+            else if (this.current < 30) {
+                return ' (傷ついている)';
+            }
+            else if (this.current < 1000) {
+                return '';
+            }
+            else {
+                return ' (壊せそうにない)';
+            }
+        };
         return LimitedValue;
     }());
     core.LimitedValue = LimitedValue;
@@ -99,7 +119,7 @@ var entities;
         __extends(Block, _super);
         function Block(_name, _life, hasTreasure) {
             if (hasTreasure === void 0) { hasTreasure = false; }
-            _super.call(this, _name + "\u300C" + faker.lorem.words(1) + "\u300D", _life);
+            _super.call(this, _name, _life);
             this._name = _name;
             this._life = _life;
             this.hasTreasure = hasTreasure;
@@ -110,7 +130,7 @@ var entities;
     var Wall = (function (_super) {
         __extends(Wall, _super);
         function Wall() {
-            _super.call(this, '壁', 9999);
+            _super.call(this, faker.lorem.words(1) + "\u3068\u66F8\u304B\u308C\u305F\u58C1", 9999);
         }
         return Wall;
     }(Block));
@@ -118,7 +138,7 @@ var entities;
     var Rock = (function (_super) {
         __extends(Rock, _super);
         function Rock() {
-            _super.call(this, '岩', 30 + dice());
+            _super.call(this, faker.commerce.productAdjective() + "\u306A\u5CA9", 30 + dice());
         }
         return Rock;
     }(Block));
@@ -126,7 +146,7 @@ var entities;
     var Tree = (function (_super) {
         __extends(Tree, _super);
         function Tree() {
-            _super.call(this, '木', 10 + dice());
+            _super.call(this, faker.commerce.productAdjective() + "\u306A\u6728", 10 + dice());
         }
         return Tree;
     }(Block));
@@ -134,7 +154,7 @@ var entities;
     var WoodenBox = (function (_super) {
         __extends(WoodenBox, _super);
         function WoodenBox() {
-            _super.call(this, '木箱', 10 + dice(2), true);
+            _super.call(this, faker.lorem.words(1) + "\u3068\u66F8\u304B\u308C\u305F\u6728\u7BB1", 10 + dice(2), true);
         }
         return WoodenBox;
     }(Block));
@@ -142,7 +162,7 @@ var entities;
     var Tussock = (function (_super) {
         __extends(Tussock, _super);
         function Tussock() {
-            _super.call(this, '草むら', dice());
+            _super.call(this, faker.commerce.color() + "\u306E\u8349\u3080\u3089", dice());
         }
         return Tussock;
     }(Block));
@@ -211,9 +231,10 @@ var entities;
 (function (entities) {
     var Spring = (function (_super) {
         __extends(Spring, _super);
-        function Spring() {
-            var amount = Math.ceil(dice() / 2);
-            _super.call(this, faker.commerce.color() + "\u306E\u6E67\u304D\u6C34", amount);
+        function Spring(poison) {
+            if (poison === void 0) { poison = false; }
+            _super.call(this, faker.commerce.color() + "\u306E\u6E67\u304D\u6C34", Math.ceil(dice() / 2));
+            this.poison = poison;
         }
         return Spring;
     }(entities.LifeObject));
@@ -337,7 +358,14 @@ var core;
                             row[j].treasure = treasureBox;
                             break;
                         case 5:
-                            row[j].spring = new Spring();
+                            var poison = false;
+                            switch (dice()) {
+                                case 1:
+                                case 2:
+                                    poison = true;
+                                    break;
+                            }
+                            row[j].spring = new Spring(poison);
                             break;
                         case 6:
                             row[j].field = Field.BLOCK;
@@ -476,9 +504,9 @@ var core;
             }
             return targetPosition;
         };
-        World.MAX_X = 9;
+        World.MAX_X = 15;
         World.MIN_X = 0;
-        World.MAX_Y = 9;
+        World.MAX_Y = 15;
         World.MIN_Y = 0;
         return World;
     }());
@@ -822,14 +850,20 @@ var appVm = new Vue({
                 }
             }
             else if (target.spring != null) {
-                this.addMessage(target.spring.name + "\u306E\u6C34\u3092\u98F2\u3093\u3060.");
+                this.addMessage(target.spring.name + "\u3092\u98F2\u3093\u3060.");
                 for (var i = 0; i < this.users.length; i++) {
                     var user = this.users[i];
-                    var amount = 100 - dice(2);
+                    var amount = dice(2);
                     user.water.add(amount);
+                    if (target.spring.poison) {
+                        user.life.sub(amount);
+                    }
                 }
                 target.spring.life.sub(1);
                 this.addMessage('水分を補給した.', EmphasisColor.SUCCESS);
+                if (target.spring.poison) {
+                    this.addMessage('しかしこれは汚水だ! 体調が悪くなった...', EmphasisColor.DANGER);
+                }
                 if (target.spring.life.current < 1) {
                     this.addMessage(target.spring.name + "\u306F\u5E72\u4E0A\u304C\u3063\u305F.");
                     target.spring = null;
@@ -868,18 +902,18 @@ var appVm = new Vue({
                 switch (dice()) {
                     case 1:
                     case 2:
-                        this.addMessage("\u9375\u304C\u6298\u308C\u305F. (" + this.keyCount + ")");
+                        this.addMessage("\u9375\u304C\u6298\u308C\u305F. (" + this.keyCount + ")", EmphasisColor.INFO);
                         this.keyCount--;
                         break;
                 }
                 if (target.treasure.lock < 1) {
-                    this.addMessage('箱が開いた!.', EmphasisColor.SUCCESS);
+                    this.addMessage('箱が開いた!', EmphasisColor.SUCCESS);
                 }
                 else if (!target.treasure.unbreakable) {
                     var damage = dice();
                     target.treasure.life.sub(damage);
                     if (target.treasure.life.current < 1) {
-                        this.addMessage('箱が壊れてしまった...');
+                        this.addMessage('箱が壊れてしまった...', EmphasisColor.INFO);
                     }
                 }
             }
@@ -939,7 +973,7 @@ var appVm = new Vue({
                 case Field.WALL:
                 case Field.BLOCK:
                     var targetName = target.block.name;
-                    this.addMessage("\u76EE\u306E\u524D\u306B" + targetName + ". (" + target.block.life.current + ")", EmphasisColor.INVERSE);
+                    this.addMessage("\u76EE\u306E\u524D\u306B" + targetName + "." + target.block.life.impression(), EmphasisColor.INVERSE);
                     break;
                 case Field.FLAT:
                 case Field.GOAL:

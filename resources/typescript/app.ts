@@ -155,14 +155,20 @@ var appVm = new Vue({
                     }
                 }
             } else if (target.spring != null) {
-                this.addMessage(`${target.spring.name}の水を飲んだ.`)
+                this.addMessage(`${target.spring.name}を飲んだ.`)
                 for (var i = 0; i < this.users.length; i++) {
                     var user = this.users[i]
-                    let amount = 100 - dice(2)
+                    let amount = dice(2)
                     user.water.add(amount)
+                    if (target.spring.poison) {
+                        user.life.sub(amount)
+                    }
                 }
                 target.spring.life.sub(1)
                 this.addMessage('水分を補給した.', EmphasisColor.SUCCESS)
+                if (target.spring.poison) {
+                    this.addMessage('しかしこれは汚水だ! 体調が悪くなった...', EmphasisColor.DANGER)
+                }
                 if (target.spring.life.current < 1) {
                     this.addMessage(`${target.spring.name}は干上がった.`)
                     target.spring = null
@@ -196,17 +202,17 @@ var appVm = new Vue({
                 switch (dice()) {
                     case 1:
                     case 2:
-                        this.addMessage(`鍵が折れた. (${this.keyCount})`)
+                        this.addMessage(`鍵が折れた. (${this.keyCount})`, EmphasisColor.INFO)
                         this.keyCount--
                         break
                 }
                 if (target.treasure.lock < 1) {
-                    this.addMessage('箱が開いた!.', EmphasisColor.SUCCESS)
+                    this.addMessage('箱が開いた!', EmphasisColor.SUCCESS)
                 } else if (!target.treasure.unbreakable) {
                     let damage = dice()
                     target.treasure.life.sub(damage)
                     if (target.treasure.life.current < 1) {
-                        this.addMessage('箱が壊れてしまった...')
+                        this.addMessage('箱が壊れてしまった...', EmphasisColor.INFO)
                     }
                 }
             }
@@ -265,7 +271,7 @@ var appVm = new Vue({
                 case Field.WALL:
                 case Field.BLOCK:
                     var targetName = target.block.name
-                    this.addMessage(`目の前に${targetName}. (${target.block.life.current})`, EmphasisColor.INVERSE)
+                    this.addMessage(`目の前に${targetName}.${target.block.life.impression()}`, EmphasisColor.INVERSE)
                     break
                 case Field.FLAT:
                 case Field.GOAL:
