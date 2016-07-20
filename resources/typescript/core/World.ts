@@ -27,10 +27,10 @@ module core {
     import SpringType = enums.SpringType;
 
     export class World {
-        public static MAX_X = 15
-        public static MIN_X = 0
         public static MAX_Y = 15
         public static MIN_Y = 0
+        public static MAX_X = 15
+        public static MIN_X = 0
 
         public fields: Cell[][]
 
@@ -42,83 +42,8 @@ module core {
         }
 
         public make() {
-            this.fields = new Array(World.MAX_Y + 1)
-            for (var i = 0; i <= World.MAX_Y; i++) {
-                var row = new Array(World.MAX_X + 1)
-                for (var j = 0; j <= World.MAX_X; j++) {
-                    row[j] = new Cell(Field.FLAT)
-                    switch (dice()) {
-                        case 4:
-                            var item = Item.getRandom()
-                            let lock = dice() - 1
-                            var treasureBox = new TreasureBox(item, lock)
-                            row[j].treasure = treasureBox
-                            break
-                        case 5:
-                            var springType = SpringType.WATER
-                            var baseAmount = 2
-                            switch (dice()) {
-                                case 1:
-                                    springType = SpringType.POISON
-                                    break
-                                case 2:
-                                    springType = SpringType.LIFE_UP
-                                    baseAmount = 1
-                                    break
-                                case 3:
-                                    springType = SpringType.LIFE_DOWN
-                                    baseAmount = 1
-                                    break
-                            }
-                            row[j].spring = new Spring(springType)
-                            break
-                        case 6:
-                            row[j].field = Field.BLOCK
-                            switch (dice()) {
-                                case 1:
-                                    row[j].field = Field.WALL
-                                    row[j].block = new entities.Wall()
-                                    break
-                                case 2:
-                                    row[j].block = new entities.Rock()
-                                    break
-                                case 3:
-                                    row[j].block = new entities.Tree()
-                                    break
-                                case 4:
-                                    row[j].block = new entities.Tussock()
-                                    break
-                                default:
-                                    row[j].block = new entities.WoodenBox()
-                                    break
-                            }
-                            break
-                    }
-                }
-                this.fields[i] = row
-            }
-            let goalX = utils.random(World.MAX_X)
-            let goalY = utils.random(World.MAX_Y)
-            var goalCell = this.fields[goalY][goalX]
-            goalCell.field = Field.GOAL
-            goalCell.treasure = null
-            goalCell.block = null
-
-            var ok = false
-            while (!ok) {
-                var treasureX = utils.random(World.MAX_X)
-                var treasureY = utils.random(World.MAX_Y)
-                if (treasureX != goalX && treasureY != goalY) {
-                    var treasureCell = this.fields[treasureY][treasureX]
-                    treasureCell.field = Field.FLAT
-                    var treasure = new Item(`秘宝「${faker.commerce.productName()}」`, ItemType.TREASURE)
-                    let lock = dice()
-                    var treasureBox = new TreasureBox(treasure, lock, true)
-                    treasureCell.treasure = treasureBox
-                    treasureCell.block = null
-                    ok = true
-                }
-            }
+            this.setFields()
+            this.setGoal()
         }
 
         public getForwardCell(position: core.Position, direction: Direction): Cell {
@@ -255,6 +180,122 @@ module core {
             }
 
             return targetPosition
+        }
+
+        private setFields() {
+            this.fields = new Array(World.MAX_Y + 1)
+            for (var i = 0; i <= World.MAX_Y; i++) {
+                var row = new Array(World.MAX_X + 1)
+                for (var j = 0; j <= World.MAX_X; j++) {
+                    row[j] = new Cell(Field.FLAT)
+                    switch (dice()) {
+                        case 4:
+                            row[j].treasure = World.getTreasureBox()
+                            break
+                        case 5:
+                            row[j].spring = World.getSpring()
+                            break
+                        case 6:
+                            row[j] = World.getBlock()
+                            break
+                    }
+                }
+                this.fields[i] = row
+            }
+        }
+
+        private static getTreasureBox(): TreasureBox {
+            var item = Item.getRandom()
+            let lock = dice() - 1
+
+            return new TreasureBox(item, lock)
+        }
+
+        private static getSpring(): Spring {
+            var springType = SpringType.WATER
+            var baseAmount = 2
+            switch (dice()) {
+                case 1:
+                    springType = SpringType.POISON
+                    break
+                case 2:
+                    springType = SpringType.LIFE_UP
+                    baseAmount = 1
+                    break
+                case 3:
+                    springType = SpringType.LIFE_DOWN
+                    baseAmount = 1
+                    break
+            }
+
+            return new Spring(springType)
+        }
+
+        private static getBlock(): Cell {
+            var cell = new Cell(Field.FLAT)
+            cell.field = Field.BLOCK
+            switch (dice()) {
+                case 1:
+                    cell.field = Field.WALL
+                    cell.block = new entities.Wall()
+                    break
+                case 2:
+                    cell.block = new entities.Rock()
+                    break
+                case 3:
+                    cell.block = new entities.Tree()
+                    break
+                case 4:
+                    cell.block = new entities.Tussock()
+                    break
+                default:
+                    cell.block = new entities.WoodenBox()
+                    break
+            }
+
+            return cell
+        }
+
+        private setGoal() {
+            // 出口の設置
+            let goalY = utils.random(World.MAX_Y)
+            let goalX = utils.random(World.MAX_X)
+            var goalCell = this.fields[goalY][goalX]
+            goalCell.field = Field.GOAL
+            goalCell.treasure = null
+            goalCell.block = null
+            // 出口以外の場所に秘宝を設置
+            var treasureY: number
+            var treasureX: number
+            while (true) {
+                treasureY = utils.random(World.MAX_Y)
+                treasureX = utils.random(World.MAX_X)
+                if (treasureY != goalY && treasureX != goalX) {
+                    var targetCell = this.fields[treasureY][treasureX]
+                    targetCell.field = Field.FLAT
+                    var item = new Item(`秘宝「${faker.commerce.productName()}」`, ItemType.TREASURE)
+                    let lock = dice()
+                    targetCell.treasure = new TreasureBox(item, lock, true)
+                    targetCell.block = null
+                    break
+                }
+            }
+            // 出口と秘宝以外の場所にコンパスを設置
+            var compassY: number
+            var compassX: number
+            while (true) {
+                compassY = utils.random(World.MAX_Y)
+                compassX = utils.random(World.MAX_X)
+                if (compassY != goalY && compassY != treasureY && compassX != goalX && compassX != treasureX) {
+                    var targetCell = this.fields[compassY][compassX]
+                    targetCell.field = Field.FLAT
+                    var item = new Item(`コンパス`, ItemType.COMPASS)
+                    let lock = dice()
+                    targetCell.treasure = new TreasureBox(item, lock)
+                    targetCell.block = null
+                    break
+                }
+            }
         }
     }
 }

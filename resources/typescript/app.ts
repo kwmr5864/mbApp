@@ -41,15 +41,21 @@ var appVm = new Vue({
         mainMessages: [],
         txt: '',
         users: models.Users.find(),
-        keyCount: 10,
+        world: new core.World(),
+        position: new core.Position(utils.random(World.MAX_Y), utils.random(World.MAX_X)),
         direction: {
             value: Direction.NORTH,
             display: '',
             enable: false
         },
-        world: new core.World(),
-        hasTreasure: false,
-        position: new core.Position(utils.random(World.MAX_Y), utils.random(World.MAX_X))
+        has: {
+            compass: false,
+            treasure: false,
+        },
+        stock: {
+            key: 10,
+            compass: 0,
+        },
     },
     methods: {
         addMember: function () {
@@ -108,7 +114,7 @@ var appVm = new Vue({
             var target = this.world.fields[this.position.y][this.position.x]
             switch (target.field) {
                 case Field.GOAL:
-                    if (this.hasTreasure) {
+                    if (this.has.treasure) {
                         this.addMessage(`${this.world.name}を脱出した.`)
                         this.addMessage('＊ おめでとう ＊', EmphasisColor.INVERSE)
                         this.addMessage('こうして一行は宝を手に無事生還した. そして宴の後...')
@@ -144,12 +150,16 @@ var appVm = new Vue({
                         this.addMessage(`${item.name}を手に入れた.`, EmphasisColor.SUCCESS)
                         switch (item.itemType) {
                             case ItemType.KEY:
-                                this.keyCount++
+                                this.stock.key++
                                 break
                             case ItemType.TREASURE:
-                                this.hasTreasure = true
+                                this.has.treasure = true
                                 this.addUserMessage(`野郎ども引き上げるぞ! 出口を探せ!`)
                                 break
+                            case ItemType.COMPASS:
+                                this.has.compass = true
+                                this.stock.compass = 100
+                                this.addUserMessage(`コンパスを起動しろ! 現在位置と方角がわかるぞ!`)
                         }
                         target.treasure.item = null
                     } else {
@@ -216,7 +226,7 @@ var appVm = new Vue({
         },
         useKey: function () {
             var target = this.world.fields[this.position.y][this.position.x]
-            if (this.keyCount < 1) {
+            if (this.stock.key < 1) {
                 this.addMessage('鍵を持っていない.')
             } else if (target.treasure == null) {
                 this.addMessage('鍵を使う場所がない.')
@@ -238,8 +248,8 @@ var appVm = new Vue({
                 switch (dice()) {
                     case 1:
                     case 2:
-                        this.addMessage(`鍵が折れた. (${this.keyCount})`, EmphasisColor.INFO)
-                        this.keyCount--
+                        this.addMessage(`鍵が折れた. (${this.stock.key})`, EmphasisColor.INFO)
+                        this.stock.key--
                         break
                 }
                 if (target.treasure.lock < 1) {
@@ -295,12 +305,16 @@ var appVm = new Vue({
             this.after()
         },
         compass: function () {
-            if (this.direction.enable) {
-                this.addMessage('コンパスを止めた.', EmphasisColor.INFO)
-                this.direction.enable = false
+            if (this.has.compass) {
+                if (this.direction.enable) {
+                    this.addMessage('コンパスを止めた.', EmphasisColor.INFO)
+                    this.direction.enable = false
+                } else {
+                    this.addMessage('コンパスを起動した.', EmphasisColor.INFO)
+                    this.direction.enable = true
+                }
             } else {
-                this.addMessage('コンパスを起動した.', EmphasisColor.INFO)
-                this.direction.enable = true
+                this.addMessage('コンパスを持っていない.')
             }
             this.after()
         },
@@ -431,6 +445,9 @@ var appVm = new Vue({
                 var user = this.users[i]
                 user.flow(amount)
             }
+            if (this.has.compass) {
+                this.stock.compass--
+            }
         },
         afterAction: function() {
             for (var i = 0; i < this.users.length; i++) {
@@ -440,6 +457,12 @@ var appVm = new Vue({
                     models.Users.delete(user.name)
                     this.users = models.Users.find()
                 }
+            }
+            if (this.has.compass && this.stock.compass < 1) {
+                this.direction.enable = false
+                this.has.compass = false
+                this.stock.compass = 0
+                this.addMessage('コンパスの電池が切れた...')
             }
             models.Users.save(this.users)
             this.users = models.Users.find()
@@ -505,8 +528,8 @@ var appVm = new Vue({
                     }
                     break
                 case 4:
-                    this.keyCount++
-                    this.addUserMessage(`ちっぽけな鍵が落ちている. 貰っておこう. (${this.keyCount})`)
+                    this.stock.key++
+                    this.addUserMessage(`ちっぽけな鍵が落ちている. 貰っておこう. (${this.stock.key})`)
                     break
             }
         },
