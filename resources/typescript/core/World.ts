@@ -3,6 +3,7 @@
 ///<reference path="../enums/Direction.ts"/>
 ///<reference path="../enums/Field.ts"/>
 ///<reference path="../enums/ItemType.ts"/>
+///<reference path="../enums/SpringType.ts"/>
 
 ///<reference path="../core/Position.ts"/>
 ///<reference path="../core/Cell.ts"/>
@@ -23,6 +24,7 @@ module core {
     import Item = entities.Item
     import Spring = entities.Spring
     import TreasureBox = entities.TreasureBox;
+    import SpringType = enums.SpringType;
 
     export class World {
         public static MAX_X = 15
@@ -53,14 +55,22 @@ module core {
                             row[j].treasure = treasureBox
                             break
                         case 5:
-                            var poison = false
+                            var springType = SpringType.WATER
+                            var baseAmount = 2
                             switch (dice()) {
                                 case 1:
+                                    springType = SpringType.POISON
+                                    break
                                 case 2:
-                                    poison = true
+                                    springType = SpringType.LIFE_UP
+                                    baseAmount = 1
+                                    break
+                                case 3:
+                                    springType = SpringType.LIFE_DOWN
+                                    baseAmount = 1
                                     break
                             }
-                            row[j].spring = new Spring(poison)
+                            row[j].spring = new Spring(springType)
                             break
                         case 6:
                             row[j].field = Field.BLOCK

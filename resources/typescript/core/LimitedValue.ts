@@ -16,6 +16,12 @@ module core {
                 this.current = 0
             }
         }
+        public expand(value: number) {
+            this.max += value
+        }
+        public contract(value: number) {
+            this.max -= value
+        }
         public isMax(): boolean {
             return this.max <= this.current
         }

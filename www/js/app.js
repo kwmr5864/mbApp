@@ -54,6 +54,12 @@ var core;
                 this.current = 0;
             }
         };
+        LimitedValue.prototype.expand = function (value) {
+            this.max += value;
+        };
+        LimitedValue.prototype.contract = function (value) {
+            this.max -= value;
+        };
         LimitedValue.prototype.isMax = function () {
             return this.max <= this.current;
         };
@@ -227,15 +233,32 @@ var entities;
     }(entities.LifeObject));
     entities.TreasureBox = TreasureBox;
 })(entities || (entities = {}));
+var enums;
+(function (enums) {
+    (function (SpringType) {
+        SpringType[SpringType["WATER"] = 1] = "WATER";
+        SpringType[SpringType["POISON"] = 2] = "POISON";
+        SpringType[SpringType["LIFE_UP"] = 3] = "LIFE_UP";
+        SpringType[SpringType["LIFE_DOWN"] = 4] = "LIFE_DOWN";
+    })(enums.SpringType || (enums.SpringType = {}));
+    var SpringType = enums.SpringType;
+})(enums || (enums = {}));
 var entities;
 (function (entities) {
+    var SpringType = enums.SpringType;
+    var dice = utils.dice;
     var Spring = (function (_super) {
         __extends(Spring, _super);
-        function Spring(poison) {
-            if (poison === void 0) { poison = false; }
+        function Spring(type, baseAmount) {
+            if (type === void 0) { type = SpringType.WATER; }
+            if (baseAmount === void 0) { baseAmount = 1; }
             _super.call(this, faker.commerce.color() + "\u306E\u6E67\u304D\u6C34", Math.ceil(dice() / 2));
-            this.poison = poison;
+            this.type = type;
+            this.baseAmount = baseAmount;
         }
+        Spring.prototype.getAmount = function () {
+            return dice(this.baseAmount);
+        };
         return Spring;
     }(entities.LifeObject));
     entities.Spring = Spring;
@@ -356,6 +379,7 @@ var core;
     var Item = entities.Item;
     var Spring = entities.Spring;
     var TreasureBox = entities.TreasureBox;
+    var SpringType = enums.SpringType;
     var World = (function () {
         function World(name) {
             if (name === void 0) { name = ''; }
@@ -379,14 +403,22 @@ var core;
                             row[j].treasure = treasureBox;
                             break;
                         case 5:
-                            var poison = false;
+                            var springType = SpringType.WATER;
+                            var baseAmount = 2;
                             switch (dice()) {
                                 case 1:
+                                    springType = SpringType.POISON;
+                                    break;
                                 case 2:
-                                    poison = true;
+                                    springType = SpringType.LIFE_UP;
+                                    baseAmount = 1;
+                                    break;
+                                case 3:
+                                    springType = SpringType.LIFE_DOWN;
+                                    baseAmount = 1;
                                     break;
                             }
-                            row[j].spring = new Spring(poison);
+                            row[j].spring = new Spring(springType);
                             break;
                         case 6:
                             row[j].field = Field.BLOCK;
@@ -772,6 +804,7 @@ var User = entities.User;
 var ItemType = enums.ItemType;
 var Item = entities.Item;
 var TreasureBox = entities.TreasureBox;
+var SpringType = enums.SpringType;
 var appVm = new Vue({
     el: '#app',
     data: {
@@ -902,19 +935,52 @@ var appVm = new Vue({
                 }
             }
             else if (target.spring != null) {
+                var hasChanged = false;
                 this.addMessage(target.spring.name + "\u3092\u98F2\u3093\u3060.");
                 for (var i = 0; i < this.users.length; i++) {
                     var user = this.users[i];
-                    var amount = dice(2);
+                    var amount = target.spring.getAmount();
                     user.water.add(amount);
-                    if (target.spring.poison) {
-                        user.life.sub(amount);
+                    switch (target.spring.type) {
+                        case SpringType.POISON:
+                            user.life.sub(amount);
+                            break;
+                        case SpringType.LIFE_UP:
+                            switch (dice()) {
+                                case 1:
+                                case 2:
+                                    user.life.expand(dice());
+                                    hasChanged = true;
+                                    break;
+                            }
+                            break;
+                        case SpringType.LIFE_DOWN:
+                            switch (dice()) {
+                                case 1:
+                                case 2:
+                                    user.life.contract(dice());
+                                    hasChanged = true;
+                                    break;
+                            }
+                            break;
                     }
                 }
                 target.spring.life.sub(1);
-                this.addMessage('水分を補給した.', EmphasisColor.SUCCESS);
-                if (target.spring.poison) {
-                    this.addMessage('しかしこれは汚水だ! 体調が悪くなった...', EmphasisColor.DANGER);
+                this.addMessage('喉が少し潤った.', EmphasisColor.SUCCESS);
+                switch (target.spring.type) {
+                    case SpringType.POISON:
+                        this.addMessage('しかしこれは汚水だ! 体調が悪くなった...', EmphasisColor.DANGER);
+                        break;
+                    case SpringType.LIFE_UP:
+                        if (hasChanged) {
+                            this.addMessage('生命力が漲った気がする...', EmphasisColor.SUCCESS);
+                        }
+                        break;
+                    case SpringType.LIFE_DOWN:
+                        if (hasChanged) {
+                            this.addMessage('衰弱したような気がする...', EmphasisColor.INFO);
+                        }
+                        break;
                 }
                 if (target.spring.life.current < 1) {
                     this.addMessage(target.spring.name + "\u306F\u5E72\u4E0A\u304C\u3063\u305F.");

@@ -32,6 +32,7 @@ import User = entities.User
 import ItemType = enums.ItemType;
 import Item = entities.Item;
 import TreasureBox = entities.TreasureBox;
+import SpringType = enums.SpringType;
 
 var appVm = new Vue({
     el: '#app',
@@ -156,19 +157,52 @@ var appVm = new Vue({
                     }
                 }
             } else if (target.spring != null) {
+                var hasChanged = false
                 this.addMessage(`${target.spring.name}を飲んだ.`)
                 for (var i = 0; i < this.users.length; i++) {
                     var user = this.users[i]
-                    let amount = dice(2)
+                    let amount = target.spring.getAmount()
                     user.water.add(amount)
-                    if (target.spring.poison) {
-                        user.life.sub(amount)
+                    switch (target.spring.type) {
+                        case SpringType.POISON:
+                            user.life.sub(amount)
+                            break
+                        case SpringType.LIFE_UP:
+                            switch (dice()) {
+                                case 1:
+                                case 2:
+                                    user.life.expand(dice())
+                                    hasChanged = true
+                                    break
+                            }
+                            break
+                        case SpringType.LIFE_DOWN:
+                            switch (dice()) {
+                                case 1:
+                                case 2:
+                                    user.life.contract(dice())
+                                    hasChanged = true
+                                    break
+                            }
+                            break
                     }
                 }
                 target.spring.life.sub(1)
-                this.addMessage('水分を補給した.', EmphasisColor.SUCCESS)
-                if (target.spring.poison) {
-                    this.addMessage('しかしこれは汚水だ! 体調が悪くなった...', EmphasisColor.DANGER)
+                this.addMessage('喉が少し潤った.', EmphasisColor.SUCCESS)
+                switch (target.spring.type) {
+                    case SpringType.POISON:
+                        this.addMessage('しかしこれは汚水だ! 体調が悪くなった...', EmphasisColor.DANGER)
+                        break
+                    case SpringType.LIFE_UP:
+                        if (hasChanged) {
+                            this.addMessage('生命力が漲った気がする...', EmphasisColor.SUCCESS)
+                        }
+                        break
+                    case SpringType.LIFE_DOWN:
+                        if (hasChanged) {
+                            this.addMessage('衰弱したような気がする...', EmphasisColor.INFO)
+                        }
+                        break
                 }
                 if (target.spring.life.current < 1) {
                     this.addMessage(`${target.spring.name}は干上がった.`)
