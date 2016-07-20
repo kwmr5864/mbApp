@@ -671,7 +671,20 @@ var entities;
 })(entities || (entities = {}));
 var enums;
 (function (enums) {
+    (function (TrapType) {
+        TrapType[TrapType["SLING"] = 1] = "SLING";
+        TrapType[TrapType["CROSSBOW"] = 2] = "CROSSBOW";
+        TrapType[TrapType["CHAINSAW"] = 3] = "CHAINSAW";
+        TrapType[TrapType["GAS"] = 4] = "GAS";
+        TrapType[TrapType["BOMB"] = 5] = "BOMB";
+        TrapType[TrapType["ROTATION"] = 6] = "ROTATION";
+    })(enums.TrapType || (enums.TrapType = {}));
+    var TrapType = enums.TrapType;
+})(enums || (enums = {}));
+var enums;
+(function (enums) {
     (function (TargetRange) {
+        TargetRange[TargetRange["NONE"] = 0] = "NONE";
         TargetRange[TargetRange["ONE"] = 1] = "ONE";
         TargetRange[TargetRange["ALL"] = 2] = "ALL";
     })(enums.TargetRange || (enums.TargetRange = {}));
@@ -680,30 +693,39 @@ var enums;
 var entities;
 (function (entities) {
     var dice = utils.dice;
+    var TrapType = enums.TrapType;
     var TargetRange = enums.TargetRange;
     var Trap = (function () {
-        function Trap(name, range, base) {
+        function Trap(name, type, range, baseAmount, addAmount) {
+            if (range === void 0) { range = TargetRange.NONE; }
+            if (baseAmount === void 0) { baseAmount = 0; }
+            if (addAmount === void 0) { addAmount = 0; }
             this.name = name;
+            this.type = type;
             this.range = range;
-            this.base = base;
+            this.baseAmount = baseAmount;
+            this.addAmount = addAmount;
         }
         Trap.random = function () {
             var trap = null;
             switch (dice(2)) {
+                case 7:
+                    trap = new Trap('投石', TrapType.SLING, TargetRange.ONE, 5, 1);
+                    break;
                 case 8:
-                    trap = new Sling();
+                    trap = new Trap('回転床', TrapType.ROTATION);
                     break;
                 case 9:
-                    trap = new Crossbow();
+                    trap = new Trap('クロスボウの矢', TrapType.CROSSBOW, TargetRange.ONE, 10, 5);
                     break;
                 case 10:
-                    trap = new Gas();
+                    trap = new Trap('チェーンソー', TrapType.CHAINSAW, TargetRange.ONE, 10000);
                     break;
                 case 11:
-                    trap = new Bomb();
+                    trap = new Trap('毒ガス', TrapType.GAS, TargetRange.ALL, 20, 1);
                     break;
                 case 12:
-                    trap = new Chainsaw();
+                    trap = new Trap('爆弾', TrapType.BOMB, TargetRange.ALL, 40, 4);
                     break;
                 default:
                     break;
@@ -711,52 +733,12 @@ var entities;
             return trap;
         };
         Trap.prototype.operate = function () {
-            var damage = this.base - dice();
+            var damage = this.baseAmount + dice(this.addAmount);
             return damage;
         };
         return Trap;
     }());
     entities.Trap = Trap;
-    var Sling = (function (_super) {
-        __extends(Sling, _super);
-        function Sling() {
-            _super.call(this, '投石', TargetRange.ONE, 10);
-        }
-        return Sling;
-    }(Trap));
-    entities.Sling = Sling;
-    var Crossbow = (function (_super) {
-        __extends(Crossbow, _super);
-        function Crossbow() {
-            _super.call(this, 'クロスボウの矢', TargetRange.ONE, 30);
-        }
-        return Crossbow;
-    }(Trap));
-    entities.Crossbow = Crossbow;
-    var Chainsaw = (function (_super) {
-        __extends(Chainsaw, _super);
-        function Chainsaw() {
-            _super.call(this, 'チェーンソー', TargetRange.ONE, 10000);
-        }
-        return Chainsaw;
-    }(Trap));
-    entities.Chainsaw = Chainsaw;
-    var Gas = (function (_super) {
-        __extends(Gas, _super);
-        function Gas() {
-            _super.call(this, '毒ガス', TargetRange.ALL, 20);
-        }
-        return Gas;
-    }(Trap));
-    entities.Gas = Gas;
-    var Bomb = (function (_super) {
-        __extends(Bomb, _super);
-        function Bomb() {
-            _super.call(this, '爆弾', TargetRange.ALL, 60);
-        }
-        return Bomb;
-    }(Trap));
-    entities.Bomb = Bomb;
 })(entities || (entities = {}));
 var core;
 (function (core) {
@@ -825,18 +807,19 @@ var models;
 })(models || (models = {}));
 var Direction = enums.Direction;
 var Field = enums.Field;
-var World = core.World;
 var TargetRange = enums.TargetRange;
 var EmphasisColor = enums.EmphasisColor;
-var random = utils.random;
-var dice = utils.dice;
-var Trap = entities.Trap;
-var Users = models.Users;
-var User = entities.User;
 var ItemType = enums.ItemType;
+var SpringType = enums.SpringType;
+var TrapType = enums.TrapType;
 var Item = entities.Item;
 var TreasureBox = entities.TreasureBox;
-var SpringType = enums.SpringType;
+var Trap = entities.Trap;
+var User = entities.User;
+var Users = models.Users;
+var random = utils.random;
+var dice = utils.dice;
+var World = core.World;
 var appVm = new Vue({
     el: '#app',
     data: {
@@ -1325,25 +1308,52 @@ var appVm = new Vue({
                     var trap = Trap.random();
                     if (trap != null) {
                         this.addMessage("\u30C8\u30E9\u30C3\u30D7\u3060! " + trap.name + "!", EmphasisColor.INVERSE);
-                        if (trap.range == TargetRange.ALL) {
-                            for (var i = 0; i < this.users.length; i++) {
-                                var user = this.users[i];
+                        switch (trap.type) {
+                            case TrapType.SLING:
+                            case TrapType.CROSSBOW:
                                 var damage = trap.operate();
+                                var userIndex = random(this.users.length) - 1;
+                                var user = this.users[userIndex];
                                 user.life.sub(damage);
-                                this.addMessage(user.name + "\u306F " + damage + " \u306E\u88AB\u5BB3\u3092\u53D7\u3051\u305F.", EmphasisColor.DANGER);
-                            }
-                        }
-                        else {
-                            var damage = trap.operate();
-                            var userIndex = random(this.users.length) - 1;
-                            var user = this.users[userIndex];
-                            user.life.sub(damage);
-                            if (user.life.max <= damage) {
-                                this.addMessage(user.name + "\u306E\u4F53\u306F\u30D0\u30E9\u30D0\u30E9\u306B\u3055\u308C\u305F!", EmphasisColor.DANGER);
-                            }
-                            else {
-                                this.addMessage(user.name + "\u306F " + damage + " \u306E\u88AB\u5BB3\u3092\u53D7\u3051\u305F.", EmphasisColor.DANGER);
-                            }
+                                if (trap.type == TrapType.CHAINSAW) {
+                                    this.addMessage(user.name + "\u306E\u4F53\u306F\u30D0\u30E9\u30D0\u30E9\u306B\u3055\u308C\u305F!", EmphasisColor.DANGER);
+                                }
+                                else {
+                                    this.addMessage(user.name + "\u306F " + damage + " \u306E\u88AB\u5BB3\u3092\u53D7\u3051\u305F.", EmphasisColor.DANGER);
+                                }
+                                break;
+                            case TrapType.GAS:
+                            case TrapType.BOMB:
+                                for (var i = 0; i < this.users.length; i++) {
+                                    var user = this.users[i];
+                                    var damage = trap.operate();
+                                    user.life.sub(damage);
+                                    this.addMessage(user.name + "\u306F " + damage + " \u306E\u88AB\u5BB3\u3092\u53D7\u3051\u305F.", EmphasisColor.DANGER);
+                                }
+                                break;
+                            case TrapType.ROTATION:
+                                var direction = null;
+                                switch (dice()) {
+                                    case 1:
+                                        direction = Direction.NORTH;
+                                        break;
+                                    case 2:
+                                        direction = Direction.EAST;
+                                        break;
+                                    case 3:
+                                        direction = Direction.SOUTH;
+                                        break;
+                                    case 4:
+                                        direction = Direction.WEST;
+                                }
+                                if (direction != null) {
+                                    this.direction.value = direction;
+                                    this.addUserMessage("\u76EE\u304C\u56DE\u3063\u305F... \u3068\u3053\u308D\u3067\u3069\u3063\u3061\u3092\u5411\u3044\u3066\u305F\u3063\u3051.");
+                                }
+                                else {
+                                    this.addUserMessage('...どうやら壊れてたみたいだな.');
+                                }
+                                break;
                         }
                     }
                     else {

@@ -19,20 +19,23 @@
 
 import Direction = enums.Direction
 import Field = enums.Field
-import World = core.World
-
 import TargetRange = enums.TargetRange
 import EmphasisColor = enums.EmphasisColor
+import ItemType = enums.ItemType
+import SpringType = enums.SpringType
+import TrapType = enums.TrapType
+
+import Item = entities.Item
+import TreasureBox = entities.TreasureBox
+import Trap = entities.Trap
+import User = entities.User
+
+import Users = models.Users
 
 import random = utils.random
 import dice = utils.dice
-import Trap = entities.Trap
-import Users = models.Users
-import User = entities.User
-import ItemType = enums.ItemType;
-import Item = entities.Item;
-import TreasureBox = entities.TreasureBox;
-import SpringType = enums.SpringType;
+
+import World = core.World
 
 var appVm = new Vue({
     el: '#app',
@@ -505,23 +508,50 @@ var appVm = new Vue({
                     var trap = Trap.random()
                     if (trap != null) {
                         this.addMessage(`トラップだ! ${trap.name}!`, EmphasisColor.INVERSE)
-                        if (trap.range == TargetRange.ALL) {
-                            for (var i = 0; i < this.users.length; i++) {
-                                var user = this.users[i]
+                        switch(trap.type) {
+                            case TrapType.SLING:
+                            case TrapType.CROSSBOW:
                                 var damage = trap.operate()
+                                var userIndex = random(this.users.length) - 1
+                                var user = this.users[userIndex]
                                 user.life.sub(damage)
-                                this.addMessage(`${user.name}は ${damage} の被害を受けた.`, EmphasisColor.DANGER)
-                            }
-                        } else {
-                            var damage = trap.operate()
-                            var userIndex = random(this.users.length) - 1
-                            var user = this.users[userIndex]
-                            user.life.sub(damage)
-                            if (user.life.max <= damage) {
-                                this.addMessage(`${user.name}の体はバラバラにされた!`, EmphasisColor.DANGER)
-                            } else {
-                                this.addMessage(`${user.name}は ${damage} の被害を受けた.`, EmphasisColor.DANGER)
-                            }
+                                if (trap.type == TrapType.CHAINSAW) {
+                                    this.addMessage(`${user.name}の体はバラバラにされた!`, EmphasisColor.DANGER)
+                                } else {
+                                    this.addMessage(`${user.name}は ${damage} の被害を受けた.`, EmphasisColor.DANGER)
+                                }
+                                break
+                            case TrapType.GAS:
+                            case TrapType.BOMB:
+                                for (var i = 0; i < this.users.length; i++) {
+                                    var user = this.users[i]
+                                    var damage = trap.operate()
+                                    user.life.sub(damage)
+                                    this.addMessage(`${user.name}は ${damage} の被害を受けた.`, EmphasisColor.DANGER)
+                                }
+                                break
+                            case TrapType.ROTATION:
+                                var direction: Direction = null
+                                switch (dice()) {
+                                    case 1:
+                                        direction = Direction.NORTH
+                                        break
+                                    case 2:
+                                        direction = Direction.EAST
+                                        break
+                                    case 3:
+                                        direction = Direction.SOUTH
+                                        break
+                                    case 4:
+                                        direction = Direction.WEST
+                                }
+                                if (direction != null) {
+                                    this.direction.value = direction
+                                    this.addUserMessage(`目が回った... ところでどっちを向いてたっけ.`)
+                                } else {
+                                    this.addUserMessage('...どうやら壊れてたみたいだな.')
+                                }
+                                break
                         }
                     } else {
                         this.addMessage('トラップだ! ...どうやら作動しなかったようだ.')
