@@ -19,19 +19,23 @@
 
 import Direction = enums.Direction
 import Field = enums.Field
-import World = core.World
-
 import TargetRange = enums.TargetRange
 import EmphasisColor = enums.EmphasisColor
+import ItemType = enums.ItemType
+import SpringType = enums.SpringType
+import TrapType = enums.TrapType
+
+import Item = entities.Item
+import TreasureBox = entities.TreasureBox
+import Trap = entities.Trap
+import User = entities.User
+
+import Users = models.Users
 
 import random = utils.random
 import dice = utils.dice
-import Trap = entities.Trap
-import Users = models.Users
-import User = entities.User
-import ItemType = enums.ItemType;
-import Item = entities.Item;
-import TreasureBox = entities.TreasureBox;
+
+import World = core.World
 
 var appVm = new Vue({
     el: '#app',
@@ -40,15 +44,21 @@ var appVm = new Vue({
         mainMessages: [],
         txt: '',
         users: models.Users.find(),
-        keyCount: 10,
+        world: new core.World(),
+        position: World.getRandomPosition(),
         direction: {
             value: Direction.NORTH,
             display: '',
             enable: false
         },
-        world: new core.World(),
-        hasTreasure: false,
-        position: new core.Position(utils.random(World.MAX_Y), utils.random(World.MAX_X))
+        has: {
+            compass: false,
+            treasure: false,
+        },
+        stock: {
+            key: 30,
+            compass: 0,
+        },
     },
     methods: {
         addMember: function () {
@@ -107,7 +117,7 @@ var appVm = new Vue({
             var target = this.world.fields[this.position.y][this.position.x]
             switch (target.field) {
                 case Field.GOAL:
-                    if (this.hasTreasure) {
+                    if (this.has.treasure) {
                         this.addMessage(`${this.world.name}を脱出した.`)
                         this.addMessage('＊ おめでとう ＊', EmphasisColor.INVERSE)
                         this.addMessage('こうして一行は宝を手に無事生還した. そして宴の後...')
@@ -137,18 +147,22 @@ var appVm = new Vue({
                 if (0 < target.treasure.lock) {
                     this.addMessage('鍵がかかっているようだ.')
                 } else {
-                    this.addMessage('箱を開けた.')
+                    this.addMessage('箱の中を覗いた.')
                     var item = target.treasure.item
                     if (item != null) {
-                        this.addMessage(`${item.name}を手に入れた.`, EmphasisColor.SUCCESS)
+                        this.addMessage(`${item.name}が入っていた.`, EmphasisColor.SUCCESS)
                         switch (item.itemType) {
                             case ItemType.KEY:
-                                this.keyCount++
+                                this.stock.key++
                                 break
                             case ItemType.TREASURE:
-                                this.hasTreasure = true
+                                this.has.treasure = true
                                 this.addUserMessage(`野郎ども引き上げるぞ! 出口を探せ!`)
                                 break
+                            case ItemType.COMPASS:
+                                this.has.compass = true
+                                this.stock.compass = 100
+                                this.addUserMessage(`コンパスを起動しろ! 現在位置と方角がわかるぞ!`)
                         }
                         target.treasure.item = null
                     } else {
@@ -156,19 +170,52 @@ var appVm = new Vue({
                     }
                 }
             } else if (target.spring != null) {
+                var hasChanged = false
                 this.addMessage(`${target.spring.name}を飲んだ.`)
                 for (var i = 0; i < this.users.length; i++) {
                     var user = this.users[i]
-                    let amount = dice(2)
+                    let amount = target.spring.getAmount()
                     user.water.add(amount)
-                    if (target.spring.poison) {
-                        user.life.sub(amount)
+                    switch (target.spring.type) {
+                        case SpringType.POISON:
+                            user.life.sub(amount)
+                            break
+                        case SpringType.LIFE_UP:
+                            switch (dice()) {
+                                case 1:
+                                case 2:
+                                    user.life.expand(dice())
+                                    hasChanged = true
+                                    break
+                            }
+                            break
+                        case SpringType.LIFE_DOWN:
+                            switch (dice()) {
+                                case 1:
+                                case 2:
+                                    user.life.contract(dice())
+                                    hasChanged = true
+                                    break
+                            }
+                            break
                     }
                 }
                 target.spring.life.sub(1)
-                this.addMessage('水分を補給した.', EmphasisColor.SUCCESS)
-                if (target.spring.poison) {
-                    this.addMessage('しかしこれは汚水だ! 体調が悪くなった...', EmphasisColor.DANGER)
+                this.addMessage('喉が少し潤った.', EmphasisColor.SUCCESS)
+                switch (target.spring.type) {
+                    case SpringType.POISON:
+                        this.addMessage('しかしこれは汚水だ! 体調が悪くなった...', EmphasisColor.DANGER)
+                        break
+                    case SpringType.LIFE_UP:
+                        if (hasChanged) {
+                            this.addMessage('生命力が漲った気がする...', EmphasisColor.SUCCESS)
+                        }
+                        break
+                    case SpringType.LIFE_DOWN:
+                        if (hasChanged) {
+                            this.addMessage('衰弱したような気がする...', EmphasisColor.INFO)
+                        }
+                        break
                 }
                 if (target.spring.life.current < 1) {
                     this.addMessage(`${target.spring.name}は干上がった.`)
@@ -182,19 +229,19 @@ var appVm = new Vue({
         },
         useKey: function () {
             var target = this.world.fields[this.position.y][this.position.x]
-            if (this.keyCount < 1) {
+            if (this.stock.key < 1) {
                 this.addMessage('鍵を持っていない.')
             } else if (target.treasure == null) {
                 this.addMessage('鍵を使う場所がない.')
             } else if (target.treasure.lock < 1) {
-                this.addMessage('この箱は既に鍵が外れている.')
+                this.addMessage('この箱は開かれている.')
             } else if (target.treasure.life.current < 1) {
-                this.addMessage('この箱は壊れてしまったのでもう開けられないだろう...')
+                this.addMessage('この箱は錠が壊れてしまったのでもう開けられないだろう...')
             } else {
                 switch (dice()) {
                     case 1:
                     case 2:
-                        this.addMessage('鍵を1つこじ開けた.', EmphasisColor.INFO)
+                        this.addMessage('錠を1つこじ開けた.', EmphasisColor.INFO)
                         target.treasure.lock--
                         break
                     default:
@@ -204,8 +251,8 @@ var appVm = new Vue({
                 switch (dice()) {
                     case 1:
                     case 2:
-                        this.addMessage(`鍵が折れた. (${this.keyCount})`, EmphasisColor.INFO)
-                        this.keyCount--
+                        this.stock.key--
+                        this.addMessage(`鍵が折れた. (${this.stock.key})`, EmphasisColor.INFO)
                         break
                 }
                 if (target.treasure.lock < 1) {
@@ -214,7 +261,7 @@ var appVm = new Vue({
                     let damage = dice()
                     target.treasure.life.sub(damage)
                     if (target.treasure.life.current < 1) {
-                        this.addMessage('箱が壊れてしまった...', EmphasisColor.INFO)
+                        this.addMessage('錠が壊れてしまった...', EmphasisColor.INFO)
                     }
                 }
                 this.flow()
@@ -261,12 +308,16 @@ var appVm = new Vue({
             this.after()
         },
         compass: function () {
-            if (this.direction.enable) {
-                this.addMessage('コンパスを止めた.', EmphasisColor.INFO)
-                this.direction.enable = false
+            if (this.has.compass) {
+                if (this.direction.enable) {
+                    this.addMessage('コンパスを止めた.', EmphasisColor.INFO)
+                    this.direction.enable = false
+                } else {
+                    this.addMessage('コンパスを起動した.', EmphasisColor.INFO)
+                    this.direction.enable = true
+                }
             } else {
-                this.addMessage('コンパスを起動した.', EmphasisColor.INFO)
-                this.direction.enable = true
+                this.addMessage('コンパスを持っていない.')
             }
             this.after()
         },
@@ -397,6 +448,9 @@ var appVm = new Vue({
                 var user = this.users[i]
                 user.flow(amount)
             }
+            if (this.has.compass) {
+                this.stock.compass--
+            }
         },
         afterAction: function() {
             for (var i = 0; i < this.users.length; i++) {
@@ -406,6 +460,12 @@ var appVm = new Vue({
                     models.Users.delete(user.name)
                     this.users = models.Users.find()
                 }
+            }
+            if (this.has.compass && this.stock.compass < 1) {
+                this.direction.enable = false
+                this.has.compass = false
+                this.stock.compass = 0
+                this.addMessage('コンパスの電池が切れた...')
             }
             models.Users.save(this.users)
             this.users = models.Users.find()
@@ -448,31 +508,85 @@ var appVm = new Vue({
                     var trap = Trap.random()
                     if (trap != null) {
                         this.addMessage(`トラップだ! ${trap.name}!`, EmphasisColor.INVERSE)
-                        if (trap.range == TargetRange.ALL) {
-                            for (var i = 0; i < this.users.length; i++) {
-                                var user = this.users[i]
+                        switch(trap.type) {
+                            case TrapType.SLING:
+                            case TrapType.CROSSBOW:
+                            case TrapType.CHAINSAW:
                                 var damage = trap.operate()
+                                var userIndex = random(this.users.length) - 1
+                                var user = this.users[userIndex]
                                 user.life.sub(damage)
-                                this.addMessage(`${user.name}は ${damage} の被害を受けた.`, EmphasisColor.DANGER)
-                            }
-                        } else {
-                            var damage = trap.operate()
-                            var userIndex = random(this.users.length) - 1
-                            var user = this.users[userIndex]
-                            user.life.sub(damage)
-                            if (user.life.max <= damage) {
-                                this.addMessage(`${user.name}の体はバラバラにされた!`, EmphasisColor.DANGER)
-                            } else {
-                                this.addMessage(`${user.name}は ${damage} の被害を受けた.`, EmphasisColor.DANGER)
-                            }
+                                if (trap.type == TrapType.CHAINSAW) {
+                                    this.addMessage(`${user.name}の体はバラバラにされた!`, EmphasisColor.DANGER)
+                                } else {
+                                    this.addMessage(`${user.name}は ${damage} の被害を受けた.`, EmphasisColor.DANGER)
+                                }
+                                break
+                            case TrapType.GAS:
+                            case TrapType.BOMB:
+                                for (var i = 0; i < this.users.length; i++) {
+                                    var user = this.users[i]
+                                    var damage = trap.operate()
+                                    user.life.sub(damage)
+                                    this.addMessage(`${user.name}は ${damage} の被害を受けた.`, EmphasisColor.DANGER)
+                                }
+                                break
+                            case TrapType.ROTATION:
+                                var direction: Direction = null
+                                switch (dice()) {
+                                    case 1:
+                                        direction = Direction.NORTH
+                                        break
+                                    case 2:
+                                        direction = Direction.EAST
+                                        break
+                                    case 3:
+                                        direction = Direction.SOUTH
+                                        break
+                                    case 4:
+                                        direction = Direction.WEST
+                                }
+                                if (direction != null) {
+                                    this.direction.value = direction
+                                    this.addUserMessage(`目が回った... ところでどっちを向いてたっけ.`)
+                                } else {
+                                    this.addMessage('...錆びついていたようだ.')
+                                }
+                                break
+                            case TrapType.WARP:
+                                switch (dice()) {
+                                    case 1:
+                                    case 2:
+                                        var position = World.getRandomPosition()
+                                        var target = this.world.fields[position.y][position.x]
+                                        if (target.block != null) {
+                                            var damage = Math.ceil(target.block.life.current / this.users.length)
+                                            for (var i = 0; i < this.users.length; i++) {
+                                                var user = this.users[i]
+                                                user.life.sub(damage)
+                                            }
+                                            this.addMessage(`落下して${target.block.name}に直撃した!`, EmphasisColor.DANGER)
+                                            this.addMessage(`${target.block.name}は粉々に砕け散った.`)
+                                            target.block = null
+                                            target.field = Field.FLAT
+                                        } else {
+                                            this.addUserMessage('...ここはどこだ?')
+                                        }
+                                        this.position = position
+                                        break
+                                    default:
+                                        this.addUserMessage('...どうやら壊れてたみたいだな.')
+                                        break
+                                }
+                                break
                         }
                     } else {
                         this.addMessage('トラップだ! ...どうやら作動しなかったようだ.')
                     }
                     break
                 case 4:
-                    this.keyCount++
-                    this.addUserMessage(`ちっぽけな鍵が落ちている. 貰っておこう. (${this.keyCount})`)
+                    this.stock.key++
+                    this.addMessage(`鍵を拾った. (${this.stock.key})`)
                     break
             }
         },

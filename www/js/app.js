@@ -54,6 +54,12 @@ var core;
                 this.current = 0;
             }
         };
+        LimitedValue.prototype.expand = function (value) {
+            this.max += value;
+        };
+        LimitedValue.prototype.contract = function (value) {
+            this.max -= value;
+        };
         LimitedValue.prototype.isMax = function () {
             return this.max <= this.current;
         };
@@ -172,10 +178,11 @@ var enums;
 (function (enums) {
     (function (ItemType) {
         ItemType[ItemType["TREASURE"] = 1] = "TREASURE";
-        ItemType[ItemType["OINTMENT"] = 2] = "OINTMENT";
-        ItemType[ItemType["MEAT"] = 3] = "MEAT";
-        ItemType[ItemType["KEY"] = 4] = "KEY";
-        ItemType[ItemType["PAPER"] = 5] = "PAPER";
+        ItemType[ItemType["COMPASS"] = 2] = "COMPASS";
+        ItemType[ItemType["OINTMENT"] = 3] = "OINTMENT";
+        ItemType[ItemType["MEAT"] = 4] = "MEAT";
+        ItemType[ItemType["KEY"] = 5] = "KEY";
+        ItemType[ItemType["PAPER"] = 6] = "PAPER";
     })(enums.ItemType || (enums.ItemType = {}));
     var ItemType = enums.ItemType;
 })(enums || (enums = {}));
@@ -218,7 +225,7 @@ var entities;
         function TreasureBox(item, lock, unbreakable) {
             if (lock === void 0) { lock = 0; }
             if (unbreakable === void 0) { unbreakable = false; }
-            _super.call(this, faker.commerce.productMaterial() + "\u306E\u5B9D\u7BB1");
+            _super.call(this, faker.commerce.color() + " " + faker.commerce.productMaterial() + "\u306E\u5B9D\u7BB1");
             this.item = item;
             this.lock = lock;
             this.unbreakable = unbreakable;
@@ -227,15 +234,32 @@ var entities;
     }(entities.LifeObject));
     entities.TreasureBox = TreasureBox;
 })(entities || (entities = {}));
+var enums;
+(function (enums) {
+    (function (SpringType) {
+        SpringType[SpringType["WATER"] = 1] = "WATER";
+        SpringType[SpringType["POISON"] = 2] = "POISON";
+        SpringType[SpringType["LIFE_UP"] = 3] = "LIFE_UP";
+        SpringType[SpringType["LIFE_DOWN"] = 4] = "LIFE_DOWN";
+    })(enums.SpringType || (enums.SpringType = {}));
+    var SpringType = enums.SpringType;
+})(enums || (enums = {}));
 var entities;
 (function (entities) {
+    var SpringType = enums.SpringType;
+    var dice = utils.dice;
     var Spring = (function (_super) {
         __extends(Spring, _super);
-        function Spring(poison) {
-            if (poison === void 0) { poison = false; }
+        function Spring(type, baseAmount) {
+            if (type === void 0) { type = SpringType.WATER; }
+            if (baseAmount === void 0) { baseAmount = 1; }
             _super.call(this, faker.commerce.color() + "\u306E\u6E67\u304D\u6C34", Math.ceil(dice() / 2));
-            this.poison = poison;
+            this.type = type;
+            this.baseAmount = baseAmount;
         }
+        Spring.prototype.getAmount = function () {
+            return dice(this.baseAmount);
+        };
         return Spring;
     }(entities.LifeObject));
     entities.Spring = Spring;
@@ -356,6 +380,7 @@ var core;
     var Item = entities.Item;
     var Spring = entities.Spring;
     var TreasureBox = entities.TreasureBox;
+    var SpringType = enums.SpringType;
     var World = (function () {
         function World(name) {
             if (name === void 0) { name = ''; }
@@ -366,74 +391,8 @@ var core;
             }
         }
         World.prototype.make = function () {
-            this.fields = new Array(World.MAX_Y + 1);
-            for (var i = 0; i <= World.MAX_Y; i++) {
-                var row = new Array(World.MAX_X + 1);
-                for (var j = 0; j <= World.MAX_X; j++) {
-                    row[j] = new Cell(Field.FLAT);
-                    switch (dice()) {
-                        case 4:
-                            var item = Item.getRandom();
-                            var lock = dice() - 1;
-                            var treasureBox = new TreasureBox(item, lock);
-                            row[j].treasure = treasureBox;
-                            break;
-                        case 5:
-                            var poison = false;
-                            switch (dice()) {
-                                case 1:
-                                case 2:
-                                    poison = true;
-                                    break;
-                            }
-                            row[j].spring = new Spring(poison);
-                            break;
-                        case 6:
-                            row[j].field = Field.BLOCK;
-                            switch (dice()) {
-                                case 1:
-                                    row[j].field = Field.WALL;
-                                    row[j].block = new entities.Wall();
-                                    break;
-                                case 2:
-                                    row[j].block = new entities.Rock();
-                                    break;
-                                case 3:
-                                    row[j].block = new entities.Tree();
-                                    break;
-                                case 4:
-                                    row[j].block = new entities.Tussock();
-                                    break;
-                                default:
-                                    row[j].block = new entities.WoodenBox();
-                                    break;
-                            }
-                            break;
-                    }
-                }
-                this.fields[i] = row;
-            }
-            var goalX = utils.random(World.MAX_X);
-            var goalY = utils.random(World.MAX_Y);
-            var goalCell = this.fields[goalY][goalX];
-            goalCell.field = Field.GOAL;
-            goalCell.treasure = null;
-            goalCell.block = null;
-            var ok = false;
-            while (!ok) {
-                var treasureX = utils.random(World.MAX_X);
-                var treasureY = utils.random(World.MAX_Y);
-                if (treasureX != goalX && treasureY != goalY) {
-                    var treasureCell = this.fields[treasureY][treasureX];
-                    treasureCell.field = Field.FLAT;
-                    var treasure = new Item("\u79D8\u5B9D\u300C" + faker.commerce.productName() + "\u300D", ItemType.TREASURE);
-                    var lock = dice();
-                    var treasureBox = new TreasureBox(treasure, lock, true);
-                    treasureCell.treasure = treasureBox;
-                    treasureCell.block = null;
-                    ok = true;
-                }
-            }
+            this.setFields();
+            this.setGoal();
         };
         World.prototype.getForwardCell = function (position, direction) {
             var targetPosition = this.getForwardPosition(position, direction);
@@ -555,10 +514,118 @@ var core;
             }
             return targetPosition;
         };
-        World.MAX_X = 15;
-        World.MIN_X = 0;
+        World.getRandomPosition = function () {
+            return new core.Position(utils.random(World.MAX_Y), utils.random(World.MAX_X));
+        };
+        World.prototype.setFields = function () {
+            this.fields = new Array(World.MAX_Y + 1);
+            for (var i = 0; i <= World.MAX_Y; i++) {
+                var row = new Array(World.MAX_X + 1);
+                for (var j = 0; j <= World.MAX_X; j++) {
+                    row[j] = new Cell(Field.FLAT);
+                    switch (dice()) {
+                        case 4:
+                            row[j].treasure = World.getTreasureBox();
+                            break;
+                        case 5:
+                            row[j].spring = World.getSpring();
+                            break;
+                        case 6:
+                            row[j] = World.getBlock();
+                            break;
+                    }
+                }
+                this.fields[i] = row;
+            }
+        };
+        World.getTreasureBox = function () {
+            var item = Item.getRandom();
+            var lock = dice() - 1;
+            return new TreasureBox(item, lock);
+        };
+        World.getSpring = function () {
+            var springType = SpringType.WATER;
+            var baseAmount = 2;
+            switch (dice()) {
+                case 1:
+                    springType = SpringType.POISON;
+                    break;
+                case 2:
+                    springType = SpringType.LIFE_UP;
+                    baseAmount = 1;
+                    break;
+                case 3:
+                    springType = SpringType.LIFE_DOWN;
+                    baseAmount = 1;
+                    break;
+            }
+            return new Spring(springType);
+        };
+        World.getBlock = function () {
+            var cell = new Cell(Field.FLAT);
+            cell.field = Field.BLOCK;
+            switch (dice()) {
+                case 1:
+                    cell.field = Field.WALL;
+                    cell.block = new entities.Wall();
+                    break;
+                case 2:
+                    cell.block = new entities.Rock();
+                    break;
+                case 3:
+                    cell.block = new entities.Tree();
+                    break;
+                case 4:
+                    cell.block = new entities.Tussock();
+                    break;
+                default:
+                    cell.block = new entities.WoodenBox();
+                    break;
+            }
+            return cell;
+        };
+        World.prototype.setGoal = function () {
+            var goalY = utils.random(World.MAX_Y);
+            var goalX = utils.random(World.MAX_X);
+            var goalCell = this.fields[goalY][goalX];
+            goalCell.field = Field.GOAL;
+            goalCell.treasure = null;
+            goalCell.block = null;
+            var treasureY;
+            var treasureX;
+            while (true) {
+                treasureY = utils.random(World.MAX_Y);
+                treasureX = utils.random(World.MAX_X);
+                if (treasureY != goalY && treasureX != goalX) {
+                    var targetCell = this.fields[treasureY][treasureX];
+                    targetCell.field = Field.FLAT;
+                    var item = new Item("\u79D8\u5B9D\u300C" + faker.commerce.productName() + "\u300D", ItemType.TREASURE);
+                    var lock = dice();
+                    targetCell.treasure = new TreasureBox(item, lock, true);
+                    targetCell.block = null;
+                    break;
+                }
+            }
+            var compassY;
+            var compassX;
+            while (true) {
+                compassY = utils.random(World.MAX_Y);
+                compassX = utils.random(World.MAX_X);
+                if (compassY != goalY && compassY != treasureY && compassX != goalX && compassX != treasureX) {
+                    var targetCell = this.fields[compassY][compassX];
+                    targetCell.field = Field.FLAT;
+                    var item = new Item("\u30B3\u30F3\u30D1\u30B9", ItemType.COMPASS);
+                    var lock = dice();
+                    targetCell.treasure = new TreasureBox(item, lock);
+                    targetCell.block = null;
+                    break;
+                }
+            }
+        };
         World.MAX_Y = 15;
         World.MIN_Y = 0;
+        World.MAX_X = 15;
+        World.MIN_X = 0;
         return World;
     }());
     core.World = World;
@@ -607,7 +674,21 @@ var entities;
 })(entities || (entities = {}));
 var enums;
 (function (enums) {
+    (function (TrapType) {
+        TrapType[TrapType["SLING"] = 1] = "SLING";
+        TrapType[TrapType["CROSSBOW"] = 2] = "CROSSBOW";
+        TrapType[TrapType["CHAINSAW"] = 3] = "CHAINSAW";
+        TrapType[TrapType["GAS"] = 4] = "GAS";
+        TrapType[TrapType["BOMB"] = 5] = "BOMB";
+        TrapType[TrapType["ROTATION"] = 6] = "ROTATION";
+        TrapType[TrapType["WARP"] = 7] = "WARP";
+    })(enums.TrapType || (enums.TrapType = {}));
+    var TrapType = enums.TrapType;
+})(enums || (enums = {}));
+var enums;
+(function (enums) {
     (function (TargetRange) {
+        TargetRange[TargetRange["NONE"] = 0] = "NONE";
         TargetRange[TargetRange["ONE"] = 1] = "ONE";
         TargetRange[TargetRange["ALL"] = 2] = "ALL";
     })(enums.TargetRange || (enums.TargetRange = {}));
@@ -616,30 +697,42 @@ var enums;
 var entities;
 (function (entities) {
     var dice = utils.dice;
+    var TrapType = enums.TrapType;
     var TargetRange = enums.TargetRange;
     var Trap = (function () {
-        function Trap(name, range, base) {
+        function Trap(name, type, range, baseAmount, addAmount) {
+            if (range === void 0) { range = TargetRange.NONE; }
+            if (baseAmount === void 0) { baseAmount = 0; }
+            if (addAmount === void 0) { addAmount = 0; }
             this.name = name;
+            this.type = type;
             this.range = range;
-            this.base = base;
+            this.baseAmount = baseAmount;
+            this.addAmount = addAmount;
         }
         Trap.random = function () {
             var trap = null;
             switch (dice(2)) {
+                case 5:
+                    trap = new Trap('ワープゾーン', TrapType.WARP);
+                    break;
+                case 6:
+                    trap = new Trap('回転床', TrapType.ROTATION);
+                    break;
+                case 7:
+                    trap = new Trap('投石', TrapType.SLING, TargetRange.ONE, 5, 1);
+                    break;
                 case 8:
-                    trap = new Sling();
+                    trap = new Trap('クロスボウの矢', TrapType.CROSSBOW, TargetRange.ONE, 10, 5);
                     break;
                 case 9:
-                    trap = new Crossbow();
+                    trap = new Trap('毒ガス', TrapType.GAS, TargetRange.ALL, 20, 1);
                     break;
                 case 10:
-                    trap = new Gas();
-                    break;
-                case 11:
-                    trap = new Bomb();
+                    trap = new Trap('爆弾', TrapType.BOMB, TargetRange.ALL, 40, 4);
                     break;
                 case 12:
-                    trap = new Chainsaw();
+                    trap = new Trap('チェーンソー', TrapType.CHAINSAW, TargetRange.ONE, 10000);
                     break;
                 default:
                     break;
@@ -647,52 +740,12 @@ var entities;
             return trap;
         };
         Trap.prototype.operate = function () {
-            var damage = this.base - dice();
+            var damage = this.baseAmount + dice(this.addAmount);
             return damage;
         };
         return Trap;
     }());
     entities.Trap = Trap;
-    var Sling = (function (_super) {
-        __extends(Sling, _super);
-        function Sling() {
-            _super.call(this, '投石', TargetRange.ONE, 10);
-        }
-        return Sling;
-    }(Trap));
-    entities.Sling = Sling;
-    var Crossbow = (function (_super) {
-        __extends(Crossbow, _super);
-        function Crossbow() {
-            _super.call(this, 'クロスボウの矢', TargetRange.ONE, 30);
-        }
-        return Crossbow;
-    }(Trap));
-    entities.Crossbow = Crossbow;
-    var Chainsaw = (function (_super) {
-        __extends(Chainsaw, _super);
-        function Chainsaw() {
-            _super.call(this, 'チェーンソー', TargetRange.ONE, 10000);
-        }
-        return Chainsaw;
-    }(Trap));
-    entities.Chainsaw = Chainsaw;
-    var Gas = (function (_super) {
-        __extends(Gas, _super);
-        function Gas() {
-            _super.call(this, '毒ガス', TargetRange.ALL, 20);
-        }
-        return Gas;
-    }(Trap));
-    entities.Gas = Gas;
-    var Bomb = (function (_super) {
-        __extends(Bomb, _super);
-        function Bomb() {
-            _super.call(this, '爆弾', TargetRange.ALL, 60);
-        }
-        return Bomb;
-    }(Trap));
-    entities.Bomb = Bomb;
 })(entities || (entities = {}));
 var core;
 (function (core) {
@@ -761,17 +814,19 @@ var models;
 })(models || (models = {}));
 var Direction = enums.Direction;
 var Field = enums.Field;
-var World = core.World;
 var TargetRange = enums.TargetRange;
 var EmphasisColor = enums.EmphasisColor;
-var random = utils.random;
-var dice = utils.dice;
-var Trap = entities.Trap;
-var Users = models.Users;
-var User = entities.User;
 var ItemType = enums.ItemType;
+var SpringType = enums.SpringType;
+var TrapType = enums.TrapType;
 var Item = entities.Item;
 var TreasureBox = entities.TreasureBox;
+var Trap = entities.Trap;
+var User = entities.User;
+var Users = models.Users;
+var random = utils.random;
+var dice = utils.dice;
+var World = core.World;
 var appVm = new Vue({
     el: '#app',
     data: {
@@ -779,15 +834,21 @@ var appVm = new Vue({
         mainMessages: [],
         txt: '',
         users: models.Users.find(),
-        keyCount: 10,
+        world: new core.World(),
+        position: World.getRandomPosition(),
         direction: {
             value: Direction.NORTH,
             display: '',
             enable: false
         },
-        world: new core.World(),
-        hasTreasure: false,
-        position: new core.Position(utils.random(World.MAX_Y), utils.random(World.MAX_X))
+        has: {
+            compass: false,
+            treasure: false,
+        },
+        stock: {
+            key: 31,
+            compass: 0,
+        },
     },
     methods: {
         addMember: function () {
@@ -847,7 +908,7 @@ var appVm = new Vue({
             var target = this.world.fields[this.position.y][this.position.x];
             switch (target.field) {
                 case Field.GOAL:
-                    if (this.hasTreasure) {
+                    if (this.has.treasure) {
                         this.addMessage(this.world.name + "\u3092\u8131\u51FA\u3057\u305F.");
                         this.addMessage('＊ おめでとう ＊', EmphasisColor.INVERSE);
                         this.addMessage('こうして一行は宝を手に無事生還した. そして宴の後...');
@@ -881,18 +942,22 @@ var appVm = new Vue({
                     this.addMessage('鍵がかかっているようだ.');
                 }
                 else {
-                    this.addMessage('箱を開けた.');
+                    this.addMessage('箱の中を覗いた.');
                     var item = target.treasure.item;
                     if (item != null) {
-                        this.addMessage(item.name + "\u3092\u624B\u306B\u5165\u308C\u305F.", EmphasisColor.SUCCESS);
+                        this.addMessage(item.name + "\u304C\u5165\u3063\u3066\u3044\u305F.", EmphasisColor.SUCCESS);
                         switch (item.itemType) {
                             case ItemType.KEY:
-                                this.keyCount++;
+                                this.stock.key++;
                                 break;
                             case ItemType.TREASURE:
-                                this.hasTreasure = true;
+                                this.has.treasure = true;
                                 this.addUserMessage("\u91CE\u90CE\u3069\u3082\u5F15\u304D\u4E0A\u3052\u308B\u305E! \u51FA\u53E3\u3092\u63A2\u305B!");
                                 break;
+                            case ItemType.COMPASS:
+                                this.has.compass = true;
+                                this.stock.compass = 100;
+                                this.addUserMessage("\u30B3\u30F3\u30D1\u30B9\u3092\u8D77\u52D5\u3057\u308D! \u73FE\u5728\u4F4D\u7F6E\u3068\u65B9\u89D2\u304C\u308F\u304B\u308B\u305E!");
                         }
                         target.treasure.item = null;
                     }
@@ -902,19 +967,52 @@ var appVm = new Vue({
                 }
             }
             else if (target.spring != null) {
+                var hasChanged = false;
                 this.addMessage(target.spring.name + "\u3092\u98F2\u3093\u3060.");
                 for (var i = 0; i < this.users.length; i++) {
                     var user = this.users[i];
-                    var amount = dice(2);
+                    var amount = target.spring.getAmount();
                     user.water.add(amount);
-                    if (target.spring.poison) {
-                        user.life.sub(amount);
+                    switch (target.spring.type) {
+                        case SpringType.POISON:
+                            user.life.sub(amount);
+                            break;
+                        case SpringType.LIFE_UP:
+                            switch (dice()) {
+                                case 1:
+                                case 2:
+                                    user.life.expand(dice());
+                                    hasChanged = true;
+                                    break;
+                            }
+                            break;
+                        case SpringType.LIFE_DOWN:
+                            switch (dice()) {
+                                case 1:
+                                case 2:
+                                    user.life.contract(dice());
+                                    hasChanged = true;
+                                    break;
+                            }
+                            break;
                     }
                 }
                 target.spring.life.sub(1);
-                this.addMessage('水分を補給した.', EmphasisColor.SUCCESS);
-                if (target.spring.poison) {
-                    this.addMessage('しかしこれは汚水だ! 体調が悪くなった...', EmphasisColor.DANGER);
+                this.addMessage('喉が少し潤った.', EmphasisColor.SUCCESS);
+                switch (target.spring.type) {
+                    case SpringType.POISON:
+                        this.addMessage('しかしこれは汚水だ! 体調が悪くなった...', EmphasisColor.DANGER);
+                        break;
+                    case SpringType.LIFE_UP:
+                        if (hasChanged) {
+                            this.addMessage('生命力が漲った気がする...', EmphasisColor.SUCCESS);
+                        }
+                        break;
+                    case SpringType.LIFE_DOWN:
+                        if (hasChanged) {
+                            this.addMessage('衰弱したような気がする...', EmphasisColor.INFO);
+                        }
+                        break;
                 }
                 if (target.spring.life.current < 1) {
                     this.addMessage(target.spring.name + "\u306F\u5E72\u4E0A\u304C\u3063\u305F.");
@@ -929,23 +1027,23 @@ var appVm = new Vue({
         },
         useKey: function () {
             var target = this.world.fields[this.position.y][this.position.x];
-            if (this.keyCount < 1) {
+            if (this.stock.key < 1) {
                 this.addMessage('鍵を持っていない.');
             }
             else if (target.treasure == null) {
                 this.addMessage('鍵を使う場所がない.');
             }
             else if (target.treasure.lock < 1) {
-                this.addMessage('この箱は既に鍵が外れている.');
+                this.addMessage('この箱は開かれている.');
             }
             else if (target.treasure.life.current < 1) {
-                this.addMessage('この箱は壊れてしまったのでもう開けられないだろう...');
+                this.addMessage('この箱は錠が壊れてしまったのでもう開けられないだろう...');
             }
             else {
                 switch (dice()) {
                     case 1:
                     case 2:
-                        this.addMessage('鍵を1つこじ開けた.', EmphasisColor.INFO);
+                        this.addMessage('錠を1つこじ開けた.', EmphasisColor.INFO);
                         target.treasure.lock--;
                         break;
                     default:
@@ -955,8 +1053,8 @@ var appVm = new Vue({
                 switch (dice()) {
                     case 1:
                     case 2:
-                        this.addMessage("\u9375\u304C\u6298\u308C\u305F. (" + this.keyCount + ")", EmphasisColor.INFO);
-                        this.keyCount--;
+                        this.stock.key--;
+                        this.addMessage("\u9375\u304C\u6298\u308C\u305F. (" + this.stock.key + ")", EmphasisColor.INFO);
                         break;
                 }
                 if (target.treasure.lock < 1) {
@@ -966,7 +1064,7 @@ var appVm = new Vue({
                     var damage = dice();
                     target.treasure.life.sub(damage);
                     if (target.treasure.life.current < 1) {
-                        this.addMessage('箱が壊れてしまった...', EmphasisColor.INFO);
+                        this.addMessage('錠が壊れてしまった...', EmphasisColor.INFO);
                     }
                 }
                 this.flow();
@@ -1013,13 +1111,18 @@ var appVm = new Vue({
             this.after();
         },
         compass: function () {
-            if (this.direction.enable) {
-                this.addMessage('コンパスを止めた.', EmphasisColor.INFO);
-                this.direction.enable = false;
+            if (this.has.compass) {
+                if (this.direction.enable) {
+                    this.addMessage('コンパスを止めた.', EmphasisColor.INFO);
+                    this.direction.enable = false;
+                }
+                else {
+                    this.addMessage('コンパスを起動した.', EmphasisColor.INFO);
+                    this.direction.enable = true;
+                }
             }
             else {
-                this.addMessage('コンパスを起動した.', EmphasisColor.INFO);
-                this.direction.enable = true;
+                this.addMessage('コンパスを持っていない.');
             }
             this.after();
         },
@@ -1152,6 +1255,9 @@ var appVm = new Vue({
                 var user = this.users[i];
                 user.flow(amount);
             }
+            if (this.has.compass) {
+                this.stock.compass--;
+            }
         },
         afterAction: function () {
             for (var i = 0; i < this.users.length; i++) {
@@ -1161,6 +1267,12 @@ var appVm = new Vue({
                     models.Users.delete(user.name);
                     this.users = models.Users.find();
                 }
+            }
+            if (this.has.compass && this.stock.compass < 1) {
+                this.direction.enable = false;
+                this.has.compass = false;
+                this.stock.compass = 0;
+                this.addMessage('コンパスの電池が切れた...');
             }
             models.Users.save(this.users);
             this.users = models.Users.find();
@@ -1203,25 +1315,80 @@ var appVm = new Vue({
                     var trap = Trap.random();
                     if (trap != null) {
                         this.addMessage("\u30C8\u30E9\u30C3\u30D7\u3060! " + trap.name + "!", EmphasisColor.INVERSE);
-                        if (trap.range == TargetRange.ALL) {
-                            for (var i = 0; i < this.users.length; i++) {
-                                var user = this.users[i];
+                        switch (trap.type) {
+                            case TrapType.SLING:
+                            case TrapType.CROSSBOW:
+                            case TrapType.CHAINSAW:
                                 var damage = trap.operate();
+                                var userIndex = random(this.users.length) - 1;
+                                var user = this.users[userIndex];
                                 user.life.sub(damage);
-                                this.addMessage(user.name + "\u306F " + damage + " \u306E\u88AB\u5BB3\u3092\u53D7\u3051\u305F.", EmphasisColor.DANGER);
-                            }
-                        }
-                        else {
-                            var damage = trap.operate();
-                            var userIndex = random(this.users.length) - 1;
-                            var user = this.users[userIndex];
-                            user.life.sub(damage);
-                            if (user.life.max <= damage) {
-                                this.addMessage(user.name + "\u306E\u4F53\u306F\u30D0\u30E9\u30D0\u30E9\u306B\u3055\u308C\u305F!", EmphasisColor.DANGER);
-                            }
-                            else {
-                                this.addMessage(user.name + "\u306F " + damage + " \u306E\u88AB\u5BB3\u3092\u53D7\u3051\u305F.", EmphasisColor.DANGER);
-                            }
+                                if (trap.type == TrapType.CHAINSAW) {
+                                    this.addMessage(user.name + "\u306E\u4F53\u306F\u30D0\u30E9\u30D0\u30E9\u306B\u3055\u308C\u305F!", EmphasisColor.DANGER);
+                                }
+                                else {
+                                    this.addMessage(user.name + "\u306F " + damage + " \u306E\u88AB\u5BB3\u3092\u53D7\u3051\u305F.", EmphasisColor.DANGER);
+                                }
+                                break;
+                            case TrapType.GAS:
+                            case TrapType.BOMB:
+                                for (var i = 0; i < this.users.length; i++) {
+                                    var user = this.users[i];
+                                    var damage = trap.operate();
+                                    user.life.sub(damage);
+                                    this.addMessage(user.name + "\u306F " + damage + " \u306E\u88AB\u5BB3\u3092\u53D7\u3051\u305F.", EmphasisColor.DANGER);
+                                }
+                                break;
+                            case TrapType.ROTATION:
+                                var direction = null;
+                                switch (dice()) {
+                                    case 1:
+                                        direction = Direction.NORTH;
+                                        break;
+                                    case 2:
+                                        direction = Direction.EAST;
+                                        break;
+                                    case 3:
+                                        direction = Direction.SOUTH;
+                                        break;
+                                    case 4:
+                                        direction = Direction.WEST;
+                                }
+                                if (direction != null) {
+                                    this.direction.value = direction;
+                                    this.addUserMessage("\u76EE\u304C\u56DE\u3063\u305F... \u3068\u3053\u308D\u3067\u3069\u3063\u3061\u3092\u5411\u3044\u3066\u305F\u3063\u3051.");
+                                }
+                                else {
+                                    this.addMessage('...錆びついていたようだ.');
+                                }
+                                break;
+                            case TrapType.WARP:
+                                switch (dice()) {
+                                    case 1:
+                                    case 2:
+                                        var position = World.getRandomPosition();
+                                        var target = this.world.fields[position.y][position.x];
+                                        if (target.block != null) {
+                                            var damage = Math.ceil(target.block.life.current / this.users.length);
+                                            for (var i = 0; i < this.users.length; i++) {
+                                                var user = this.users[i];
+                                                user.life.sub(damage);
+                                            }
+                                            this.addMessage("\u843D\u4E0B\u3057\u3066" + target.block.name + "\u306B\u76F4\u6483\u3057\u305F!", EmphasisColor.DANGER);
+                                            this.addMessage(target.block.name + "\u306F\u7C89\u3005\u306B\u7815\u3051\u6563\u3063\u305F.");
+                                            target.block = null;
+                                            target.field = Field.FLAT;
+                                        }
+                                        else {
+                                            this.addUserMessage('...ここはどこだ?');
+                                        }
+                                        this.position = position;
+                                        break;
+                                    default:
+                                        this.addUserMessage('...どうやら壊れてたみたいだな.');
+                                        break;
+                                }
+                                break;
                         }
                     }
                     else {
@@ -1229,8 +1396,8 @@ var appVm = new Vue({
                     }
                     break;
                 case 4:
-                    this.keyCount++;
-                    this.addUserMessage("\u3061\u3063\u307D\u3051\u306A\u9375\u304C\u843D\u3061\u3066\u3044\u308B. \u8CB0\u3063\u3066\u304A\u3053\u3046. (" + this.keyCount + ")");
+                    this.stock.key++;
+                    this.addMessage("\u9375\u3092\u62FE\u3063\u305F. (" + this.stock.key + ")");
                     break;
             }
         },

@@ -1,28 +1,42 @@
+///<reference path="../enums/TrapType.ts"/>
 ///<reference path="../enums/TargetRange.ts"/>
 ///<reference path="../utils/common.ts"/>
 
 module entities {
     import dice = utils.dice
+    import TrapType = enums.TrapType;
     import TargetRange = enums.TargetRange;
     export class Trap {
-        constructor(public name: string, public range: TargetRange, public base: number) {}
+        constructor(
+            public name: string,
+            public type: TrapType,
+            public range: TargetRange = TargetRange.NONE,
+            public baseAmount: number = 0,
+            public addAmount: number = 0
+        ) {}
         public static random(): Trap {
             var trap: Trap = null
             switch (dice(2)) {
+                case 5:
+                    trap = new Trap('ワープゾーン', TrapType.WARP)
+                    break
+                case 6:
+                    trap = new Trap('回転床', TrapType.ROTATION)
+                    break
+                case 7:
+                    trap = new Trap('投石', TrapType.SLING, TargetRange.ONE, 5, 1)
+                    break
                 case 8:
-                    trap = new Sling()
+                    trap = new Trap('クロスボウの矢', TrapType.CROSSBOW, TargetRange.ONE, 10, 5)
                     break
                 case 9:
-                    trap = new Crossbow()
+                    trap = new Trap('毒ガス', TrapType.GAS, TargetRange.ALL, 20, 1)
                     break
                 case 10:
-                    trap = new Gas()
-                    break
-                case 11:
-                    trap = new Bomb()
+                    trap = new Trap('爆弾', TrapType.BOMB, TargetRange.ALL, 40, 4)
                     break
                 case 12:
-                    trap = new Chainsaw()
+                    trap = new Trap('チェーンソー', TrapType.CHAINSAW, TargetRange.ONE, 10000)
                     break
                 default:
                     break
@@ -31,34 +45,9 @@ module entities {
             return trap
         }
         public operate(): number {
-            var damage = this.base - dice()
+            var damage = this.baseAmount + dice(this.addAmount)
 
             return damage
-        }
-    }
-    export class Sling extends Trap {
-        constructor() {
-            super('投石', TargetRange.ONE, 10)
-        }
-    }
-    export class Crossbow extends Trap {
-        constructor() {
-            super('クロスボウの矢', TargetRange.ONE, 30)
-        }
-    }
-    export class Chainsaw extends Trap {
-        constructor() {
-            super('チェーンソー', TargetRange.ONE, 10000)
-        }
-    }
-    export class Gas extends Trap {
-        constructor() {
-            super('毒ガス', TargetRange.ALL, 20)
-        }
-    }
-    export class Bomb extends Trap {
-        constructor() {
-            super('爆弾', TargetRange.ALL, 60)
         }
     }
 }
