@@ -514,6 +514,9 @@ var core;
             }
             return targetPosition;
         };
+        World.getRandomPosition = function () {
+            return new core.Position(utils.random(World.MAX_Y), utils.random(World.MAX_X));
+        };
         World.prototype.setFields = function () {
             this.fields = new Array(World.MAX_Y + 1);
             for (var i = 0; i <= World.MAX_Y; i++) {
@@ -678,6 +681,7 @@ var enums;
         TrapType[TrapType["GAS"] = 4] = "GAS";
         TrapType[TrapType["BOMB"] = 5] = "BOMB";
         TrapType[TrapType["ROTATION"] = 6] = "ROTATION";
+        TrapType[TrapType["WARP"] = 7] = "WARP";
     })(enums.TrapType || (enums.TrapType = {}));
     var TrapType = enums.TrapType;
 })(enums || (enums = {}));
@@ -709,23 +713,26 @@ var entities;
         Trap.random = function () {
             var trap = null;
             switch (dice(2)) {
+                case 5:
+                    trap = new Trap('ワープゾーン', TrapType.WARP);
+                    break;
+                case 6:
+                    trap = new Trap('回転床', TrapType.ROTATION);
+                    break;
                 case 7:
                     trap = new Trap('投石', TrapType.SLING, TargetRange.ONE, 5, 1);
                     break;
                 case 8:
-                    trap = new Trap('回転床', TrapType.ROTATION);
-                    break;
-                case 9:
                     trap = new Trap('クロスボウの矢', TrapType.CROSSBOW, TargetRange.ONE, 10, 5);
                     break;
-                case 10:
-                    trap = new Trap('チェーンソー', TrapType.CHAINSAW, TargetRange.ONE, 10000);
-                    break;
-                case 11:
+                case 9:
                     trap = new Trap('毒ガス', TrapType.GAS, TargetRange.ALL, 20, 1);
                     break;
-                case 12:
+                case 10:
                     trap = new Trap('爆弾', TrapType.BOMB, TargetRange.ALL, 40, 4);
+                    break;
+                case 12:
+                    trap = new Trap('チェーンソー', TrapType.CHAINSAW, TargetRange.ONE, 10000);
                     break;
                 default:
                     break;
@@ -828,7 +835,7 @@ var appVm = new Vue({
         txt: '',
         users: models.Users.find(),
         world: new core.World(),
-        position: new core.Position(utils.random(World.MAX_Y), utils.random(World.MAX_X)),
+        position: World.getRandomPosition(),
         direction: {
             value: Direction.NORTH,
             display: '',
@@ -839,7 +846,7 @@ var appVm = new Vue({
             treasure: false,
         },
         stock: {
-            key: 10,
+            key: 31,
             compass: 0,
         },
     },
@@ -935,10 +942,10 @@ var appVm = new Vue({
                     this.addMessage('鍵がかかっているようだ.');
                 }
                 else {
-                    this.addMessage('箱を開けた.');
+                    this.addMessage('箱の中を覗いた.');
                     var item = target.treasure.item;
                     if (item != null) {
-                        this.addMessage(item.name + "\u3092\u624B\u306B\u5165\u308C\u305F.", EmphasisColor.SUCCESS);
+                        this.addMessage(item.name + "\u304C\u5165\u3063\u3066\u3044\u305F.", EmphasisColor.SUCCESS);
                         switch (item.itemType) {
                             case ItemType.KEY:
                                 this.stock.key++;
@@ -1027,16 +1034,16 @@ var appVm = new Vue({
                 this.addMessage('鍵を使う場所がない.');
             }
             else if (target.treasure.lock < 1) {
-                this.addMessage('この箱は既に鍵が外れている.');
+                this.addMessage('この箱は開かれている.');
             }
             else if (target.treasure.life.current < 1) {
-                this.addMessage('この箱は壊れてしまったのでもう開けられないだろう...');
+                this.addMessage('この箱は錠が壊れてしまったのでもう開けられないだろう...');
             }
             else {
                 switch (dice()) {
                     case 1:
                     case 2:
-                        this.addMessage('鍵を1つこじ開けた.', EmphasisColor.INFO);
+                        this.addMessage('錠を1つこじ開けた.', EmphasisColor.INFO);
                         target.treasure.lock--;
                         break;
                     default:
@@ -1046,8 +1053,8 @@ var appVm = new Vue({
                 switch (dice()) {
                     case 1:
                     case 2:
-                        this.addMessage("\u9375\u304C\u6298\u308C\u305F. (" + this.stock.key + ")", EmphasisColor.INFO);
                         this.stock.key--;
+                        this.addMessage("\u9375\u304C\u6298\u308C\u305F. (" + this.stock.key + ")", EmphasisColor.INFO);
                         break;
                 }
                 if (target.treasure.lock < 1) {
@@ -1057,7 +1064,7 @@ var appVm = new Vue({
                     var damage = dice();
                     target.treasure.life.sub(damage);
                     if (target.treasure.life.current < 1) {
-                        this.addMessage('箱が壊れてしまった...', EmphasisColor.INFO);
+                        this.addMessage('錠が壊れてしまった...', EmphasisColor.INFO);
                     }
                 }
                 this.flow();
@@ -1311,6 +1318,7 @@ var appVm = new Vue({
                         switch (trap.type) {
                             case TrapType.SLING:
                             case TrapType.CROSSBOW:
+                            case TrapType.CHAINSAW:
                                 var damage = trap.operate();
                                 var userIndex = random(this.users.length) - 1;
                                 var user = this.users[userIndex];
@@ -1351,7 +1359,34 @@ var appVm = new Vue({
                                     this.addUserMessage("\u76EE\u304C\u56DE\u3063\u305F... \u3068\u3053\u308D\u3067\u3069\u3063\u3061\u3092\u5411\u3044\u3066\u305F\u3063\u3051.");
                                 }
                                 else {
-                                    this.addUserMessage('...どうやら壊れてたみたいだな.');
+                                    this.addMessage('...錆びついていたようだ.');
+                                }
+                                break;
+                            case TrapType.WARP:
+                                switch (dice()) {
+                                    case 1:
+                                    case 2:
+                                        var position = World.getRandomPosition();
+                                        var target = this.world.fields[position.y][position.x];
+                                        if (target.block != null) {
+                                            var damage = Math.ceil(target.block.life.current / this.users.length);
+                                            for (var i = 0; i < this.users.length; i++) {
+                                                var user = this.users[i];
+                                                user.life.sub(damage);
+                                            }
+                                            this.addMessage("\u843D\u4E0B\u3057\u3066" + target.block.name + "\u306B\u76F4\u6483\u3057\u305F!", EmphasisColor.DANGER);
+                                            this.addMessage(target.block.name + "\u306F\u7C89\u3005\u306B\u7815\u3051\u6563\u3063\u305F.");
+                                            target.block = null;
+                                            target.field = Field.FLAT;
+                                        }
+                                        else {
+                                            this.addUserMessage('...ここはどこだ?');
+                                        }
+                                        this.position = position;
+                                        break;
+                                    default:
+                                        this.addUserMessage('...どうやら壊れてたみたいだな.');
+                                        break;
                                 }
                                 break;
                         }
@@ -1362,7 +1397,7 @@ var appVm = new Vue({
                     break;
                 case 4:
                     this.stock.key++;
-                    this.addUserMessage("\u3061\u3063\u307D\u3051\u306A\u9375\u304C\u843D\u3061\u3066\u3044\u308B. \u8CB0\u3063\u3066\u304A\u3053\u3046. (" + this.stock.key + ")");
+                    this.addMessage("\u9375\u3092\u62FE\u3063\u305F. (" + this.stock.key + ")");
                     break;
             }
         },

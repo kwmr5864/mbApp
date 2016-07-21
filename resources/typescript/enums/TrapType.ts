@@ -6,5 +6,6 @@ module enums {
         GAS,
         BOMB,
         ROTATION,
+        WARP,
     }
 }

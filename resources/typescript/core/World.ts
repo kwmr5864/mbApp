@@ -182,6 +182,10 @@ module core {
             return targetPosition
         }
 
+        public static getRandomPosition(): core.Position {
+            return new core.Position(utils.random(World.MAX_Y), utils.random(World.MAX_X))
+        }
+
         private setFields() {
             this.fields = new Array(World.MAX_Y + 1)
             for (var i = 0; i <= World.MAX_Y; i++) {

@@ -45,7 +45,7 @@ var appVm = new Vue({
         txt: '',
         users: models.Users.find(),
         world: new core.World(),
-        position: new core.Position(utils.random(World.MAX_Y), utils.random(World.MAX_X)),
+        position: World.getRandomPosition(),
         direction: {
             value: Direction.NORTH,
             display: '',
@@ -56,7 +56,7 @@ var appVm = new Vue({
             treasure: false,
         },
         stock: {
-            key: 10,
+            key: 30,
             compass: 0,
         },
     },
@@ -147,10 +147,10 @@ var appVm = new Vue({
                 if (0 < target.treasure.lock) {
                     this.addMessage('鍵がかかっているようだ.')
                 } else {
-                    this.addMessage('箱を開けた.')
+                    this.addMessage('箱の中を覗いた.')
                     var item = target.treasure.item
                     if (item != null) {
-                        this.addMessage(`${item.name}を手に入れた.`, EmphasisColor.SUCCESS)
+                        this.addMessage(`${item.name}が入っていた.`, EmphasisColor.SUCCESS)
                         switch (item.itemType) {
                             case ItemType.KEY:
                                 this.stock.key++
@@ -234,14 +234,14 @@ var appVm = new Vue({
             } else if (target.treasure == null) {
                 this.addMessage('鍵を使う場所がない.')
             } else if (target.treasure.lock < 1) {
-                this.addMessage('この箱は既に鍵が外れている.')
+                this.addMessage('この箱は開かれている.')
             } else if (target.treasure.life.current < 1) {
-                this.addMessage('この箱は壊れてしまったのでもう開けられないだろう...')
+                this.addMessage('この箱は錠が壊れてしまったのでもう開けられないだろう...')
             } else {
                 switch (dice()) {
                     case 1:
                     case 2:
-                        this.addMessage('鍵を1つこじ開けた.', EmphasisColor.INFO)
+                        this.addMessage('錠を1つこじ開けた.', EmphasisColor.INFO)
                         target.treasure.lock--
                         break
                     default:
@@ -251,8 +251,8 @@ var appVm = new Vue({
                 switch (dice()) {
                     case 1:
                     case 2:
-                        this.addMessage(`鍵が折れた. (${this.stock.key})`, EmphasisColor.INFO)
                         this.stock.key--
+                        this.addMessage(`鍵が折れた. (${this.stock.key})`, EmphasisColor.INFO)
                         break
                 }
                 if (target.treasure.lock < 1) {
@@ -261,7 +261,7 @@ var appVm = new Vue({
                     let damage = dice()
                     target.treasure.life.sub(damage)
                     if (target.treasure.life.current < 1) {
-                        this.addMessage('箱が壊れてしまった...', EmphasisColor.INFO)
+                        this.addMessage('錠が壊れてしまった...', EmphasisColor.INFO)
                     }
                 }
                 this.flow()
@@ -511,6 +511,7 @@ var appVm = new Vue({
                         switch(trap.type) {
                             case TrapType.SLING:
                             case TrapType.CROSSBOW:
+                            case TrapType.CHAINSAW:
                                 var damage = trap.operate()
                                 var userIndex = random(this.users.length) - 1
                                 var user = this.users[userIndex]
@@ -549,7 +550,33 @@ var appVm = new Vue({
                                     this.direction.value = direction
                                     this.addUserMessage(`目が回った... ところでどっちを向いてたっけ.`)
                                 } else {
-                                    this.addUserMessage('...どうやら壊れてたみたいだな.')
+                                    this.addMessage('...錆びついていたようだ.')
+                                }
+                                break
+                            case TrapType.WARP:
+                                switch (dice()) {
+                                    case 1:
+                                    case 2:
+                                        var position = World.getRandomPosition()
+                                        var target = this.world.fields[position.y][position.x]
+                                        if (target.block != null) {
+                                            var damage = Math.ceil(target.block.life.current / this.users.length)
+                                            for (var i = 0; i < this.users.length; i++) {
+                                                var user = this.users[i]
+                                                user.life.sub(damage)
+                                            }
+                                            this.addMessage(`落下して${target.block.name}に直撃した!`, EmphasisColor.DANGER)
+                                            this.addMessage(`${target.block.name}は粉々に砕け散った.`)
+                                            target.block = null
+                                            target.field = Field.FLAT
+                                        } else {
+                                            this.addUserMessage('...ここはどこだ?')
+                                        }
+                                        this.position = position
+                                        break
+                                    default:
+                                        this.addUserMessage('...どうやら壊れてたみたいだな.')
+                                        break
                                 }
                                 break
                         }
@@ -559,7 +586,7 @@ var appVm = new Vue({
                     break
                 case 4:
                     this.stock.key++
-                    this.addUserMessage(`ちっぽけな鍵が落ちている. 貰っておこう. (${this.stock.key})`)
+                    this.addMessage(`鍵を拾った. (${this.stock.key})`)
                     break
             }
         },
