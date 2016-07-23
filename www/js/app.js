@@ -202,7 +202,7 @@ var entities;
             switch (dice()) {
                 case 1:
                 case 2:
-                    item = new Item('軟膏', ItemType.OINTMENT);
+                    item = new Item('塗り薬', ItemType.OINTMENT);
                     break;
                 case 3:
                 case 4:
@@ -225,7 +225,7 @@ var entities;
         function TreasureBox(item, lock, unbreakable) {
             if (lock === void 0) { lock = 0; }
             if (unbreakable === void 0) { unbreakable = false; }
-            _super.call(this, faker.commerce.color() + " " + faker.commerce.productMaterial() + "\u306E\u5B9D\u7BB1");
+            _super.call(this, faker.commerce.color() + " " + faker.commerce.productMaterial() + "\u306E\u5B9D\u7BB1", 50);
             this.item = item;
             this.lock = lock;
             this.unbreakable = unbreakable;
@@ -365,6 +365,9 @@ var core;
                     break;
             }
             return position;
+        };
+        Position.prototype.toString = function () {
+            return "(" + this.x + "," + this.y + ")";
         };
         return Position;
     }());
@@ -587,6 +590,7 @@ var core;
         World.prototype.setGoal = function () {
             var goalY = utils.random(World.MAX_Y);
             var goalX = utils.random(World.MAX_X);
+            this.goalPosition = new core.Position(goalX, goalY);
             var goalCell = this.fields[goalY][goalX];
             goalCell.field = Field.GOAL;
             goalCell.treasure = null;
@@ -597,6 +601,7 @@ var core;
                 treasureY = utils.random(World.MAX_Y);
                 treasureX = utils.random(World.MAX_X);
                 if (treasureY != goalY && treasureX != goalX) {
+                    this.treasurePosition = new core.Position(treasureX, treasureY);
                     var targetCell = this.fields[treasureY][treasureX];
                     targetCell.field = Field.FLAT;
                     var item = new Item("\u79D8\u5B9D\u300C" + faker.commerce.productName() + "\u300D", ItemType.TREASURE);
@@ -612,9 +617,12 @@ var core;
                 compassY = utils.random(World.MAX_Y);
                 compassX = utils.random(World.MAX_X);
                 if (compassY != goalY && compassY != treasureY && compassX != goalX && compassX != treasureX) {
+                    this.compassPosition = new core.Position(compassX, compassY);
                     var targetCell = this.fields[compassY][compassX];
                     targetCell.field = Field.FLAT;
                     var item = new Item("\u30B3\u30F3\u30D1\u30B9", ItemType.COMPASS);
+                    item.life.expand(400);
+                    item.life.add(400);
                     var lock = dice();
                     targetCell.treasure = new TreasureBox(item, lock);
                     targetCell.block = null;
@@ -960,8 +968,27 @@ var appVm = new Vue({
                     if (item != null) {
                         this.addMessage(item.name + "\u304C\u5165\u3063\u3066\u3044\u305F.", EmphasisColor.SUCCESS);
                         switch (item.itemType) {
-                            case ItemType.KEY:
-                                this.stock.key++;
+                            case ItemType.OINTMENT:
+                                for (var i = 0; i < this.users.length; i++) {
+                                    var user = this.users[i];
+                                    user.life.add(50);
+                                }
+                                this.addMessage('君たちは傷と疲れを癒した.', EmphasisColor.SUCCESS);
+                                break;
+                            case ItemType.MEAT:
+                                for (var i = 0; i < this.users.length; i++) {
+                                    var user = this.users[i];
+                                    user.food.add(100);
+                                }
+                                this.addMessage('君たちは空腹を満たした.', EmphasisColor.SUCCESS);
+                                break;
+                            case ItemType.PAPER:
+                                if (item.description != null && item.description != '') {
+                                    this.addMessage(item.description, EmphasisColor.INVERSE);
+                                }
+                                else {
+                                    this.addMessage('何か書いてあるがそれを読むことはできなかった...');
+                                }
                                 break;
                             case ItemType.TREASURE:
                                 this.has.treasure = true;
@@ -1107,8 +1134,24 @@ var appVm = new Vue({
                             switch (dice()) {
                                 case 1:
                                 case 2:
+                                case 3:
                                     this.addMessage('目の前に何かが落ちた.', EmphasisColor.SUCCESS);
                                     var item = Item.getRandom();
+                                    if (item != null && item.itemType == ItemType.PAPER) {
+                                        var memo = '';
+                                        switch (dice()) {
+                                            case 1:
+                                                memo = "\u3053\u306E\u8FF7\u5BAE\u306E\u51FA\u53E3\u306F " + this.world.goalPosition.toString() + " \u306E\u4F4D\u7F6E\u306B\u3042\u308B.";
+                                                break;
+                                            case 2:
+                                                memo = "\u79D8\u5B9D\u306F " + this.world.goalPosition.toString() + " \u306E\u4F4D\u7F6E\u306B\u96A0\u3055\u308C\u3066\u3044\u308B.";
+                                                break;
+                                            case 3:
+                                                memo = "\u30B3\u30F3\u30D1\u30B9\u306F " + this.world.goalPosition.toString() + " \u306E\u4F4D\u7F6E\u306B\u96A0\u3055\u308C\u3066\u3044\u308B.";
+                                                break;
+                                        }
+                                        item.description = memo;
+                                    }
                                     var lock = dice() - 1;
                                     target.treasure = new TreasureBox(item, lock);
                                     break;
@@ -1300,31 +1343,56 @@ var appVm = new Vue({
         randomEvent: function () {
             switch (dice()) {
                 case 1:
-                    var money = dice(2);
-                    this.addMessage(money + " \u91D1\u62FE\u3063\u305F.", EmphasisColor.SUCCESS);
-                    this.stock.money += money;
-                    break;
-                case 2:
-                    this.stock.key++;
-                    this.addMessage("\u9375\u3092\u62FE\u3063\u305F. (" + this.stock.key + ")");
-                    break;
-                case 3:
-                    this.addMessage('コウモリの群れだ!', EmphasisColor.INVERSE);
                     switch (dice()) {
                         case 1:
-                            this.addMessage('だが幸い食糧を奪われずに済んだ.');
+                        case 3:
+                        case 5:
+                            var money = dice(2);
+                            this.addMessage(money + " \u91D1\u62FE\u3063\u305F.", EmphasisColor.SUCCESS);
+                            this.stock.money += money;
                             break;
                         default:
-                            for (var i = 0; i < this.users.length; i++) {
-                                var user = this.users[i];
-                                var food = dice(2);
-                                user.food.sub(food);
-                            }
-                            this.addMessage('食糧を少し奪われてしまった...');
+                            this.stock.key++;
+                            this.addMessage("\u9375\u3092\u62FE\u3063\u305F. (" + this.stock.key + ")", EmphasisColor.SUCCESS);
                             break;
                     }
                     break;
-                case 4:
+                case 2:
+                    switch (dice()) {
+                        case 1:
+                        case 2:
+                        case 3:
+                            this.addMessage('コウモリの群れだ!', EmphasisColor.INVERSE);
+                            switch (dice()) {
+                                case 1:
+                                    this.addMessage('だが幸い何も奪われずに済んだ.');
+                                    break;
+                                default:
+                                    var amount = dice(2);
+                                    this.stock.money -= amount;
+                                    this.addMessage('お金を少し奪われてしまった...', EmphasisColor.INFO);
+                                    break;
+                            }
+                            break;
+                        default:
+                            this.addMessage('ねずみの群れだ!', EmphasisColor.INVERSE);
+                            switch (dice()) {
+                                case 1:
+                                    this.addMessage('だが幸い何も奪われずに済んだ.');
+                                    break;
+                                default:
+                                    for (var i = 0; i < this.users.length; i++) {
+                                        var user = this.users[i];
+                                        var amount = dice(2);
+                                        user.food.sub(amount);
+                                    }
+                                    this.addMessage('食糧を少し奪われてしまった...');
+                                    break;
+                            }
+                            break;
+                    }
+                    break;
+                case 3:
                     var trap = Trap.random();
                     if (trap != null) {
                         this.addMessage("\u30C8\u30E9\u30C3\u30D7\u3060! " + trap.name + "!", EmphasisColor.INVERSE);
