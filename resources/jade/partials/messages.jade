@@ -1,6 +1,7 @@
 #messages
     p.topMessage
         span.worldName {{ world.name }}
+        span お金: {{ stock.money }}
         template(v-if="direction.enable")
             span {{ topMessage }}
             span 方向:

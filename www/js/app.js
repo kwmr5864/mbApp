@@ -846,7 +846,8 @@ var appVm = new Vue({
             treasure: false,
         },
         stock: {
-            key: 31,
+            money: 400,
+            key: 20,
             compass: 0,
         },
     },
@@ -863,14 +864,19 @@ var appVm = new Vue({
                     break;
                 }
             }
+            var basePrice = 100;
             if (added) {
-                this.addMessage(name + "\u306F\u8FFD\u52A0\u6E08\u307F\u3067\u3059!");
+                this.addMessage(name + "\u306F\u30C1\u30FC\u30E0\u306B\u52A0\u5165\u6E08\u307F\u3067\u3059!");
+            }
+            else if (this.stock.money < basePrice) {
+                this.addMessage("\u30E1\u30F3\u30D0\u3092\u52A0\u3048\u308B\u306B\u306F " + basePrice + " \u91D1\u306E\u4F9D\u983C\u6599\u3092\u652F\u6255\u3046\u5FC5\u8981\u304C\u3042\u308B.");
             }
             else {
                 var user = new User(name);
                 Users.add(user);
                 this.users = Users.find();
-                this.addMessage(name + "\u3092\u8FFD\u52A0\u3057\u307E\u3057\u305F!", EmphasisColor.SUCCESS);
+                this.addMessage("\u4F9D\u983C\u6599\u3092 " + basePrice + " \u91D1\u652F\u6255\u3063\u3066" + name + "\u3092\u30C1\u30FC\u30E0\u306B\u52A0\u3048\u305F!", EmphasisColor.SUCCESS);
+                this.stock.money -= basePrice;
             }
             this.txt = '';
         },
@@ -878,16 +884,23 @@ var appVm = new Vue({
             for (var i = 0; i < this.users.length; i++) {
                 var user = this.users[i];
                 if (userName === user.name) {
-                    Users.delete(userName);
-                    this.users = Users.find();
-                    this.addMessage(userName + "\u3092\u9664\u540D\u3057\u307E\u3057\u305F!");
+                    var basePrice = 50;
+                    if (this.stock.money < basePrice) {
+                        this.addMessage("\u30E1\u30F3\u30D0\u3092\u9664\u540D\u3059\u308B\u306B\u306F " + basePrice + " \u91D1\u306E\u6170\u8B1D\u6599\u3092\u652F\u6255\u3046\u5FC5\u8981\u304C\u3042\u308B.");
+                    }
+                    else {
+                        Users.delete(userName);
+                        this.users = Users.find();
+                        this.addMessage("\u6170\u8B1D\u6599\u3092 " + basePrice + " \u91D1\u652F\u6255\u3063\u3066" + userName + "\u3092\u9664\u540D\u3057\u305F.");
+                        this.stock.money -= basePrice;
+                    }
                 }
             }
         },
         dissolution: function () {
             models.Users.clear();
             this.users = models.Users.find();
-            this.addMessage('チームを解散した');
+            this.addMessage('チームを解散した...');
         },
         rest: function () {
             this.addMessage('休憩中...');
@@ -1287,15 +1300,15 @@ var appVm = new Vue({
         randomEvent: function () {
             switch (dice()) {
                 case 1:
-                    this.addUserMessage('食い物が落ちてるぜ!');
-                    this.addMessage('保存のきかなさそうな果実で一行はわずかに腹を満たした.', EmphasisColor.SUCCESS);
-                    for (var i = 0; i < this.users.length; i++) {
-                        var user = this.users[i];
-                        var food = dice(2);
-                        user.food.add(food);
-                    }
+                    var money = dice(2);
+                    this.addMessage(money + " \u91D1\u62FE\u3063\u305F.", EmphasisColor.SUCCESS);
+                    this.stock.money += money;
                     break;
                 case 2:
+                    this.stock.key++;
+                    this.addMessage("\u9375\u3092\u62FE\u3063\u305F. (" + this.stock.key + ")");
+                    break;
+                case 3:
                     this.addMessage('コウモリの群れだ!', EmphasisColor.INVERSE);
                     switch (dice()) {
                         case 1:
@@ -1311,7 +1324,7 @@ var appVm = new Vue({
                             break;
                     }
                     break;
-                case 3:
+                case 4:
                     var trap = Trap.random();
                     if (trap != null) {
                         this.addMessage("\u30C8\u30E9\u30C3\u30D7\u3060! " + trap.name + "!", EmphasisColor.INVERSE);
@@ -1394,10 +1407,6 @@ var appVm = new Vue({
                     else {
                         this.addMessage('トラップだ! ...どうやら作動しなかったようだ.');
                     }
-                    break;
-                case 4:
-                    this.stock.key++;
-                    this.addMessage("\u9375\u3092\u62FE\u3063\u305F. (" + this.stock.key + ")");
                     break;
             }
         },

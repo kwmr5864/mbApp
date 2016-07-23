@@ -2,16 +2,16 @@ include ../mixins/grid/mdl-cell
 
 #search
     .mdl-grid.buttons
-        +mdl-cell-button('undo', 'turnLeft();')
-        +mdl-cell-button('arrow_upward', 'goForward();')
-        +mdl-cell-button('redo', 'turnRight();')
-    .mdl-grid.buttons
         +mdl-cell-button-half('explore', 'compass();')
         +mdl-cell-button-half('hotel', 'rest();')
-        +mdl-cell-button-half('search', 'search();')
-        +mdl-cell-button-half('pan_tool', 'take();')
+        +mdl-cell-button('arrow_upward', 'goForward();')
         +mdl-cell-button-half('thumb_down', 'action();')
         +mdl-cell-button-half('vpn_key', 'useKey();')
+    .mdl-grid.buttons
+        +mdl-cell-button('undo', 'turnLeft();')
+        +mdl-cell-button-half('search', 'search();')
+        +mdl-cell-button-half('pan_tool', 'take();')
+        +mdl-cell-button('redo', 'turnRight();')
     .mdl-grid.buttons
         +mdl-cell-button('arrow_backward', 'moveLeft();')
         +mdl-cell-button('arrow_downward', 'moveBack();')
