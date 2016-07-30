@@ -4,5 +4,7 @@ module enums {
         FLAT,
         BLOCK,
         GOAL,
+        UPSTAIRS,
+        DOWNSTAIRS,
     }
 }

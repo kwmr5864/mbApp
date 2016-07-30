@@ -49,11 +49,12 @@ var appVm = new Vue({
         direction: {
             value: Direction.NORTH,
             display: '',
-            enable: false
         },
         has: {
-            compass: false,
             treasure: false,
+        },
+        enable: {
+            compass: false,
         },
         stock: {
             money: 400,
@@ -125,20 +126,17 @@ var appVm = new Vue({
             this.after()
         },
         search: function () {
-            var target = this.world.fields[this.position.y][this.position.x]
+            var target = this.world.getCell(this.position)
             switch (target.field) {
-                case Field.GOAL:
-                    if (this.has.treasure) {
-                        this.addMessage(`${this.world.name}を脱出した.`)
-                        this.addMessage('＊ おめでとう ＊', EmphasisColor.INVERSE)
-                        this.addMessage('こうして一行は宝を手に無事生還した. そして宴の後...')
-                        this.addMessage('彼らは各々の次なる冒険を求め旅立っていったのだった.')
-                        models.Users.clear()
-                        this.users = models.Users.find()
-                        this.world.make()
+                case Field.DOWNSTAIRS:
+                    if (World.MIN_Z < this.position.z) {
+                        this.addMessage('下に降りる階段がある.', EmphasisColor.INFO)
                     } else {
-                        this.addUserMessage('出口だ. 宝を見つけたらここから脱出するぞ.')
+                        this.addMessage('島を脱出する船着き場がある.', EmphasisColor.INFO)
                     }
+                    break
+                case Field.UPSTAIRS:
+                    this.addMessage('上に登る階段がある.', EmphasisColor.INFO)
                     break
                 default:
                     if (target.treasure != null) {
@@ -153,111 +151,142 @@ var appVm = new Vue({
             this.after()
         },
         take: function () {
-            var target = this.world.fields[this.position.y][this.position.x]
-            if (target.treasure != null) {
-                if (0 < target.treasure.lock) {
-                    this.addMessage('鍵がかかっているようだ.')
-                } else {
-                    this.addMessage('箱の中を覗いた.')
-                    var item = target.treasure.item
-                    if (item != null) {
-                        this.addMessage(`${item.name}が入っていた.`, EmphasisColor.SUCCESS)
-                        switch (item.itemType) {
-                            case ItemType.OINTMENT:
-                                for (var i = 0; i < this.users.length; i++) {
-                                    var user = this.users[i]
-                                    user.life.add(50)
-                                }
-                                this.addMessage('君たちは傷と疲れを癒した.', EmphasisColor.SUCCESS)
-                                break
-                            case ItemType.MEAT:
-                                for (var i = 0; i < this.users.length; i++) {
-                                    var user = this.users[i]
-                                    user.food.add(100)
-                                }
-                                this.addMessage('君たちは空腹を満たした.', EmphasisColor.SUCCESS)
-                                break
-                            case ItemType.PAPER:
-                                if (item.description != null && item.description != '') {
-                                    this.addMessage(item.description, EmphasisColor.INVERSE)
-                                } else {
-                                    this.addMessage('何か書いてあるがそれを読むことはできなかった...')
-                                }
-                                break
-                            case ItemType.TREASURE:
-                                this.has.treasure = true
-                                this.addUserMessage(`野郎ども引き上げるぞ! 出口を探せ!`)
-                                break
-                            case ItemType.COMPASS:
-                                this.has.compass = true
-                                this.stock.compass = 100
-                                this.addUserMessage(`コンパスを起動しろ! 現在位置と方角がわかるぞ!`)
+            var target = this.world.getCell(this.position)
+            switch (target.field) {
+                case Field.DOWNSTAIRS:
+                    if (World.MIN_Z < this.position.z) {
+                        this.position.z--
+                        if (World.MIN_Z < this.position.z) {
+                            this.addMessage(`階段を降り塔の ${this.position.z} 階へと進んだ...`, EmphasisColor.INFO)
+                        } else {
+                            this.addMessage('階段を降り地上へと戻った.', EmphasisColor.INFO)
                         }
-                        target.treasure.item = null
+                        this.afterAction()
                     } else {
-                        this.addMessage('中はもぬけの殻だった...')
+                        if (this.has.treasure) {
+                            this.addMessage(`${this.world.name}を脱出した.`)
+                            this.addMessage('＊ おめでとう ＊', EmphasisColor.INVERSE)
+                            this.addMessage('こうして一行は宝を手に無事生還した. そして宴の後...')
+                            this.addMessage('彼らは各々の次なる冒険を求め旅立っていったのだった.')
+                            models.Users.clear()
+                            this.users = models.Users.find()
+                            this.world.make()
+                        } else {
+                            this.addUserMessage('秘宝を手に入れるまでは帰れないぜ.')
+                        }
                     }
-                }
-            } else if (target.spring != null) {
-                var hasChanged = false
-                this.addMessage(`${target.spring.name}を飲んだ.`)
-                for (var i = 0; i < this.users.length; i++) {
-                    var user = this.users[i]
-                    let amount = target.spring.getAmount()
-                    user.water.add(amount)
-                    switch (target.spring.type) {
-                        case SpringType.POISON:
-                            user.life.sub(amount)
-                            break
-                        case SpringType.LIFE_UP:
-                            switch (dice()) {
-                                case 1:
-                                case 2:
-                                    user.life.expand(dice())
-                                    hasChanged = true
+                    break
+                case Field.UPSTAIRS:
+                    this.position.z++
+                    this.addMessage(`階段を登り塔の ${this.position.z} 階へと進んだ...`, EmphasisColor.INFO)
+                    this.afterAction()
+                    break
+                default:
+                    if (target.treasure != null) {
+                        if (0 < target.treasure.lock) {
+                            this.addMessage('鍵がかかっているようだ.')
+                        } else {
+                            this.addMessage('箱の中を覗いた.')
+                            var item = target.treasure.item
+                            if (item != null) {
+                                this.addMessage(`${item.name}が入っていた.`, EmphasisColor.SUCCESS)
+                                switch (item.itemType) {
+                                    case ItemType.OINTMENT:
+                                        for (var i = 0; i < this.users.length; i++) {
+                                            var user = this.users[i]
+                                            user.life.add(50)
+                                        }
+                                        this.addMessage('君たちは傷と疲れを癒した.', EmphasisColor.SUCCESS)
+                                        break
+                                    case ItemType.MEAT:
+                                        for (var i = 0; i < this.users.length; i++) {
+                                            var user = this.users[i]
+                                            user.food.add(100)
+                                        }
+                                        this.addMessage('君たちは空腹を満たした.', EmphasisColor.SUCCESS)
+                                        break
+                                    case ItemType.PAPER:
+                                        if (item.description != null && item.description != '') {
+                                            this.addMessage(item.description, EmphasisColor.INVERSE)
+                                        } else {
+                                            this.addMessage('何か書いてあるがそれを読むことはできなかった...')
+                                        }
+                                        break
+                                    case ItemType.TREASURE:
+                                        this.has.treasure = true
+                                        this.addUserMessage(`野郎ども引き上げるぞ! 出口を探せ!`)
+                                        break
+                                    case ItemType.COMPASS:
+                                        this.stock.compass += item.life.current
+                                        this.addUserMessage(`コンパスを起動しろ! 現在位置と方角がわかるぞ!`)
+                                }
+                                target.treasure.item = null
+                            } else {
+                                this.addMessage('中はもぬけの殻だった...')
+                            }
+                        }
+                    } else if (target.spring != null) {
+                        var hasChanged = false
+                        this.addMessage(`${target.spring.name}を飲んだ.`)
+                        for (var i = 0; i < this.users.length; i++) {
+                            var user = this.users[i]
+                            let amount = target.spring.getAmount()
+                            user.water.add(amount)
+                            switch (target.spring.type) {
+                                case SpringType.POISON:
+                                    user.life.sub(amount)
+                                    break
+                                case SpringType.LIFE_UP:
+                                    switch (dice()) {
+                                        case 1:
+                                        case 2:
+                                            user.life.expand(dice())
+                                            hasChanged = true
+                                            break
+                                    }
+                                    break
+                                case SpringType.LIFE_DOWN:
+                                    switch (dice()) {
+                                        case 1:
+                                        case 2:
+                                            user.life.contract(dice())
+                                            hasChanged = true
+                                            break
+                                    }
                                     break
                             }
-                            break
-                        case SpringType.LIFE_DOWN:
-                            switch (dice()) {
-                                case 1:
-                                case 2:
-                                    user.life.contract(dice())
-                                    hasChanged = true
-                                    break
-                            }
-                            break
+                        }
+                        target.spring.life.sub(1)
+                        this.addMessage('喉が少し潤った.', EmphasisColor.SUCCESS)
+                        switch (target.spring.type) {
+                            case SpringType.POISON:
+                                this.addMessage('しかしこれは汚水だ! 体調が悪くなった...', EmphasisColor.DANGER)
+                                break
+                            case SpringType.LIFE_UP:
+                                if (hasChanged) {
+                                    this.addMessage('生命力が漲った気がする...', EmphasisColor.SUCCESS)
+                                }
+                                break
+                            case SpringType.LIFE_DOWN:
+                                if (hasChanged) {
+                                    this.addMessage('衰弱したような気がする...', EmphasisColor.INFO)
+                                }
+                                break
+                        }
+                        if (target.spring.life.current < 1) {
+                            this.addMessage(`${target.spring.name}は干上がった.`)
+                            target.spring = null
+                        }
+                        this.afterAction()
+                    } else {
+                        this.addMessage('ここには手に取るようなものが何もない.')
                     }
-                }
-                target.spring.life.sub(1)
-                this.addMessage('喉が少し潤った.', EmphasisColor.SUCCESS)
-                switch (target.spring.type) {
-                    case SpringType.POISON:
-                        this.addMessage('しかしこれは汚水だ! 体調が悪くなった...', EmphasisColor.DANGER)
-                        break
-                    case SpringType.LIFE_UP:
-                        if (hasChanged) {
-                            this.addMessage('生命力が漲った気がする...', EmphasisColor.SUCCESS)
-                        }
-                        break
-                    case SpringType.LIFE_DOWN:
-                        if (hasChanged) {
-                            this.addMessage('衰弱したような気がする...', EmphasisColor.INFO)
-                        }
-                        break
-                }
-                if (target.spring.life.current < 1) {
-                    this.addMessage(`${target.spring.name}は干上がった.`)
-                    target.spring = null
-                }
-                this.afterAction()
-            } else {
-                this.addMessage('ここには手に取るようなものが何もない.')
+                    break
             }
             this.after()
         },
         useKey: function () {
-            var target = this.world.fields[this.position.y][this.position.x]
+            var target = this.world.getCell(this.position)
             if (this.stock.key < 1) {
                 this.addMessage('鍵を持っていない.')
             } else if (target.treasure == null) {
@@ -286,11 +315,13 @@ var appVm = new Vue({
                 }
                 if (target.treasure.lock < 1) {
                     this.addMessage('箱が開いた!', EmphasisColor.SUCCESS)
+                    target.treasure.name = `開いた${target.treasure.name}`
                 } else if (!target.treasure.unbreakable) {
                     let damage = dice()
                     target.treasure.life.sub(damage)
                     if (target.treasure.life.current < 1) {
                         this.addMessage('錠が壊れてしまった...', EmphasisColor.INFO)
+                        target.treasure.name = `壊れた${target.treasure.name}`
                     }
                 }
                 this.flow()
@@ -330,10 +361,7 @@ var appVm = new Vue({
                                                 memo = `この迷宮の出口は ${this.world.goalPosition.toString()} の位置にある.`
                                                 break
                                             case 2:
-                                                memo = `秘宝は ${this.world.goalPosition.toString()} の位置に隠されている.`
-                                                break
-                                            case 3:
-                                                memo = `コンパスは ${this.world.goalPosition.toString()} の位置に隠されている.`
+                                                memo = `秘宝は ${this.world.treasurePosition.toString()} の位置に隠されている.`
                                                 break
                                         }
                                         item.description = memo
@@ -353,13 +381,13 @@ var appVm = new Vue({
             this.after()
         },
         compass: function () {
-            if (this.has.compass) {
-                if (this.direction.enable) {
+            if (0 < this.stock.compass) {
+                if (this.enable.compass) {
                     this.addMessage('コンパスを止めた.', EmphasisColor.INFO)
-                    this.direction.enable = false
+                    this.enable.compass = false
                 } else {
                     this.addMessage('コンパスを起動した.', EmphasisColor.INFO)
-                    this.direction.enable = true
+                    this.enable.compass = true
                 }
             } else {
                 this.addMessage('コンパスを持っていない.')
@@ -371,13 +399,12 @@ var appVm = new Vue({
             switch (target.field) {
                 case Field.WALL:
                 case Field.BLOCK:
-                    var targetName = target.block.name
-                    this.addMessage(`目の前に${targetName}.${target.block.life.impression()}`, EmphasisColor.INVERSE)
+                    var targetName = `${target.block.name}${target.block.life.impression()}`
+                    this.addMessage(`目の前に${targetName}.`, EmphasisColor.INVERSE)
                     break
-                case Field.FLAT:
-                case Field.GOAL:
+                default:
                     var forwardCell = this.world.getForwardCell(this.position, this.direction.value)
-                    if (forwardCell.treasure != null || forwardCell.spring != null) {
+                    if (forwardCell.field == Field.DOWNSTAIRS || forwardCell.field == Field.UPSTAIRS || forwardCell.treasure != null || forwardCell.spring != null) {
                         this.addMessage('前へ進んだ. 足元に何かある.', EmphasisColor.INFO)
                     } else {
                         this.addMessage('前へ進んだ.', EmphasisColor.INFO)
@@ -438,8 +465,7 @@ var appVm = new Vue({
                 case Field.BLOCK:
                     this.addMessage('何かがあって通れない.', EmphasisColor.INFO)
                     break
-                case Field.FLAT:
-                case Field.GOAL:
+                default:
                     this.addMessage('後ろに下がった.', EmphasisColor.INFO)
                     var targetPosition = this.world.getBackPosition(this.position, this.direction.value)
                     this.position = targetPosition
@@ -457,8 +483,7 @@ var appVm = new Vue({
                 case Field.BLOCK:
                     this.addMessage('何かがあって通れない.', EmphasisColor.INFO)
                     break
-                case Field.FLAT:
-                case Field.GOAL:
+                default:
                     this.addMessage('左へ移動した.', EmphasisColor.INFO)
                     var targetPosition = this.world.getLeftPosition(this.position, this.direction.value)
                     this.position = targetPosition
@@ -476,8 +501,7 @@ var appVm = new Vue({
                 case Field.BLOCK:
                     this.addMessage('何かがあって通れない.', EmphasisColor.INFO)
                     break
-                case Field.FLAT:
-                case Field.GOAL:
+                default:
                     this.addMessage('右へ移動した.', EmphasisColor.INFO)
                     var targetPosition = this.world.getRightPosition(this.position, this.direction.value)
                     this.position = targetPosition
@@ -493,7 +517,7 @@ var appVm = new Vue({
                 var user = this.users[i]
                 user.flow(amount)
             }
-            if (this.has.compass) {
+            if (this.enable.compass && 0 < this.stock.compass) {
                 this.stock.compass--
             }
         },
@@ -506,9 +530,8 @@ var appVm = new Vue({
                     this.users = models.Users.find()
                 }
             }
-            if (this.has.compass && this.stock.compass < 1) {
-                this.direction.enable = false
-                this.has.compass = false
+            if (this.enable.compass && this.stock.compass < 1) {
+                this.enable.compass = false
                 this.stock.compass = 0
                 this.addMessage('コンパスの電池が切れた...')
             }
@@ -518,7 +541,7 @@ var appVm = new Vue({
         after: function () {
             this.topMessage = `位置: (${this.position.x},${this.position.y})`
             if (this.users.length < 1) {
-                this.direction.enable = false
+                this.enable.compass = false
             }
             this.direction.display = this.getDirectionDisplay()
         },
@@ -627,8 +650,8 @@ var appVm = new Vue({
                                 switch (dice()) {
                                     case 1:
                                     case 2:
-                                        var position = World.getRandomPosition()
-                                        var target = this.world.fields[position.y][position.x]
+                                        var position = World.getRandomPosition(this.position.z)
+                                        var target = this.world.getCell(this.position)
                                         if (target.block != null) {
                                             var damage = Math.ceil(target.block.life.current / this.users.length)
                                             for (var i = 0; i < this.users.length; i++) {

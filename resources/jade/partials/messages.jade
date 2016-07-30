@@ -1,8 +1,10 @@
 #messages
     p.topMessage
         span.worldName {{ world.name }}
+            template(v-if="0 < position.z") 塔 {{ position.z }} 階
+            template(v-else) 地上
         span お金: {{ stock.money }}
-        template(v-if="direction.enable")
+        template(v-if="enable.compass")
             span {{ topMessage }}
             span 方向:
             +material-icon('{{ direction.display }}')

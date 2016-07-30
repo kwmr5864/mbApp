@@ -10,6 +10,8 @@ var enums;
         Field[Field["FLAT"] = 1] = "FLAT";
         Field[Field["BLOCK"] = 2] = "BLOCK";
         Field[Field["GOAL"] = 3] = "GOAL";
+        Field[Field["UPSTAIRS"] = 4] = "UPSTAIRS";
+        Field[Field["DOWNSTAIRS"] = 5] = "DOWNSTAIRS";
     })(enums.Field || (enums.Field = {}));
     var Field = enums.Field;
 })(enums || (enums = {}));
@@ -68,13 +70,13 @@ var core;
                 return '';
             }
             else if (this.current < 5) {
-                return ' (瀕死)';
+                return ' (ボロボロ)';
             }
             else if (this.current < 10) {
-                return ' (重傷)';
+                return ' (傷だらけ)';
             }
             else if (this.current < 30) {
-                return ' (傷ついている)';
+                return ' (傷がある)';
             }
             else if (this.current < 1000) {
                 return '';
@@ -201,14 +203,15 @@ var entities;
             var item = null;
             switch (dice()) {
                 case 1:
-                case 2:
                     item = new Item('塗り薬', ItemType.OINTMENT);
                     break;
-                case 3:
-                case 4:
+                case 2:
                     item = new Item('肉', ItemType.MEAT);
                     break;
-                case 5:
+                case 3:
+                    item = new Item("\u30B3\u30F3\u30D1\u30B9", ItemType.COMPASS);
+                    break;
+                case 4:
                     item = new Item('紙切れ', ItemType.PAPER);
                     break;
             }
@@ -278,27 +281,28 @@ var core;
 (function (core) {
     var Direction = enums.Direction;
     var Position = (function () {
-        function Position(x, y) {
+        function Position(x, y, z) {
             this.x = x;
             this.y = y;
+            this.z = z;
         }
         Position.prototype.getForward = function (direction) {
             var position;
             switch (direction) {
                 case Direction.NORTH:
-                    position = new core.Position(this.x, this.y - 1);
+                    position = new core.Position(this.x, this.y - 1, this.z);
                     break;
                 case Direction.EAST:
-                    position = new core.Position(this.x + 1, this.y);
+                    position = new core.Position(this.x + 1, this.y, this.z);
                     break;
                 case Direction.SOUTH:
-                    position = new core.Position(this.x, this.y + 1);
+                    position = new core.Position(this.x, this.y + 1, this.z);
                     break;
                 case Direction.WEST:
-                    position = new core.Position(this.x - 1, this.y);
+                    position = new core.Position(this.x - 1, this.y, this.z);
                     break;
                 default:
-                    position = new core.Position(-1, -1);
+                    position = new core.Position(-1, -1, -1);
                     break;
             }
             return position;
@@ -307,19 +311,19 @@ var core;
             var position;
             switch (direction) {
                 case Direction.NORTH:
-                    position = new core.Position(this.x - 1, this.y);
+                    position = new core.Position(this.x - 1, this.y, this.z);
                     break;
                 case Direction.EAST:
-                    position = new core.Position(this.x, this.y - 1);
+                    position = new core.Position(this.x, this.y - 1, this.z);
                     break;
                 case Direction.SOUTH:
-                    position = new core.Position(this.x + 1, this.y);
+                    position = new core.Position(this.x + 1, this.y, this.z);
                     break;
                 case Direction.WEST:
-                    position = new core.Position(this.x, this.y + 1);
+                    position = new core.Position(this.x, this.y + 1, this.z);
                     break;
                 default:
-                    position = new core.Position(-1, -1);
+                    position = new core.Position(-1, -1, -1);
                     break;
             }
             return position;
@@ -328,19 +332,19 @@ var core;
             var position;
             switch (direction) {
                 case Direction.NORTH:
-                    position = new core.Position(this.x + 1, this.y);
+                    position = new core.Position(this.x + 1, this.y, this.z);
                     break;
                 case Direction.EAST:
-                    position = new core.Position(this.x, this.y + 1);
+                    position = new core.Position(this.x, this.y + 1, this.z);
                     break;
                 case Direction.SOUTH:
-                    position = new core.Position(this.x - 1, this.y);
+                    position = new core.Position(this.x - 1, this.y, this.z);
                     break;
                 case Direction.WEST:
-                    position = new core.Position(this.x, this.y - 1);
+                    position = new core.Position(this.x, this.y - 1, this.z);
                     break;
                 default:
-                    position = new core.Position(-1, -1);
+                    position = new core.Position(-1, -1, -1);
                     break;
             }
             return position;
@@ -349,19 +353,19 @@ var core;
             var position;
             switch (direction) {
                 case Direction.NORTH:
-                    position = new core.Position(this.x, this.y + 1);
+                    position = new core.Position(this.x, this.y + 1, this.z);
                     break;
                 case Direction.EAST:
-                    position = new core.Position(this.x - 1, this.y);
+                    position = new core.Position(this.x - 1, this.y, this.z);
                     break;
                 case Direction.SOUTH:
-                    position = new core.Position(this.x, this.y - 1);
+                    position = new core.Position(this.x, this.y - 1, this.z);
                     break;
                 case Direction.WEST:
-                    position = new core.Position(this.x + 1, this.y);
+                    position = new core.Position(this.x + 1, this.y, this.z);
                     break;
                 default:
-                    position = new core.Position(-1, -1);
+                    position = new core.Position(-1, -1, -1);
                     break;
             }
             return position;
@@ -395,23 +399,27 @@ var core;
         }
         World.prototype.make = function () {
             this.setFields();
-            this.setGoal();
+            this.setObjects();
+        };
+        World.prototype.getCell = function (position) {
+            var targetPosition = this.fields[position.z][position.y][position.x];
+            return targetPosition;
         };
         World.prototype.getForwardCell = function (position, direction) {
             var targetPosition = this.getForwardPosition(position, direction);
-            return this.fields[targetPosition.y][targetPosition.x];
+            return this.fields[targetPosition.z][targetPosition.y][targetPosition.x];
         };
         World.prototype.getBackCell = function (position, direction) {
             var targetPosition = this.getBackPosition(position, direction);
-            return this.fields[targetPosition.y][targetPosition.x];
+            return this.fields[targetPosition.z][targetPosition.y][targetPosition.x];
         };
         World.prototype.getLeftCell = function (position, direction) {
             var targetPosition = this.getLeftPosition(position, direction);
-            return this.fields[targetPosition.y][targetPosition.x];
+            return this.fields[targetPosition.z][targetPosition.y][targetPosition.x];
         };
         World.prototype.getRightCell = function (position, direction) {
             var targetPosition = this.getRightPosition(position, direction);
-            return this.fields[targetPosition.y][targetPosition.x];
+            return this.fields[targetPosition.z][targetPosition.y][targetPosition.x];
         };
         World.prototype.getForwardPosition = function (position, direction) {
             var targetPosition = position.getForward(direction);
@@ -517,28 +525,33 @@ var core;
             }
             return targetPosition;
         };
-        World.getRandomPosition = function () {
-            return new core.Position(utils.random(World.MAX_Y), utils.random(World.MAX_X));
+        World.getRandomPosition = function (z) {
+            if (z === void 0) { z = World.MIN_Z; }
+            return new core.Position(utils.random(World.MAX_X), utils.random(World.MAX_Y), z);
         };
         World.prototype.setFields = function () {
-            this.fields = new Array(World.MAX_Y + 1);
-            for (var i = 0; i <= World.MAX_Y; i++) {
-                var row = new Array(World.MAX_X + 1);
-                for (var j = 0; j <= World.MAX_X; j++) {
-                    row[j] = new Cell(Field.FLAT);
-                    switch (dice()) {
-                        case 4:
-                            row[j].treasure = World.getTreasureBox();
-                            break;
-                        case 5:
-                            row[j].spring = World.getSpring();
-                            break;
-                        case 6:
-                            row[j] = World.getBlock();
-                            break;
+            this.fields = new Array(World.MAX_Z + 1);
+            for (var k = 0; k <= World.MAX_Z; k++) {
+                var rows = new Array(World.MAX_Y + 1);
+                for (var j = 0; j <= World.MAX_Y; j++) {
+                    var row = new Array(World.MAX_X + 1);
+                    for (var i = 0; i <= World.MAX_X; i++) {
+                        row[i] = new Cell(Field.FLAT);
+                        switch (dice()) {
+                            case 4:
+                                row[i].treasure = World.getTreasureBox();
+                                break;
+                            case 5:
+                                row[i].spring = World.getSpring();
+                                break;
+                            case 6:
+                                row[i] = World.getBlock();
+                                break;
+                        }
                     }
+                    rows[j] = row;
                 }
-                this.fields[i] = row;
+                this.fields[k] = rows;
             }
         };
         World.getTreasureBox = function () {
@@ -587,53 +600,60 @@ var core;
             }
             return cell;
         };
-        World.prototype.setGoal = function () {
-            var goalY = utils.random(World.MAX_Y);
-            var goalX = utils.random(World.MAX_X);
-            this.goalPosition = new core.Position(goalX, goalY);
-            var goalCell = this.fields[goalY][goalX];
-            goalCell.field = Field.GOAL;
-            goalCell.treasure = null;
-            goalCell.block = null;
-            var treasureY;
+        World.prototype.setObjects = function () {
+            for (var z = World.MIN_Z; z < World.MAX_Z; z++) {
+                var upX = utils.random(World.MAX_X);
+                var upY = utils.random(World.MAX_Y);
+                var upCell = this.fields[z][upY][upX];
+                upCell.field = Field.UPSTAIRS;
+                upCell.treasure = null;
+                upCell.block = null;
+            }
+            for (var z = World.MIN_Z; z <= World.MAX_Z; z++) {
+                var downX;
+                var downY;
+                var downCell;
+                while (true) {
+                    downX = utils.random(World.MAX_X);
+                    downY = utils.random(World.MAX_Y);
+                    downCell = this.fields[z][downY][downX];
+                    if (downCell.field != Field.DOWNSTAIRS) {
+                        break;
+                    }
+                }
+                downCell.field = Field.DOWNSTAIRS;
+                downCell.treasure = null;
+                downCell.block = null;
+                if (z == World.MIN_Z) {
+                    this.goalPosition = new core.Position(z, downY, downX);
+                }
+            }
             var treasureX;
+            var treasureY;
+            var treasureZ;
+            var treasureCell;
             while (true) {
-                treasureY = utils.random(World.MAX_Y);
-                treasureX = utils.random(World.MAX_X);
-                if (treasureY != goalY && treasureX != goalX) {
-                    this.treasurePosition = new core.Position(treasureX, treasureY);
-                    var targetCell = this.fields[treasureY][treasureX];
-                    targetCell.field = Field.FLAT;
-                    var item = new Item("\u79D8\u5B9D\u300C" + faker.commerce.productName() + "\u300D", ItemType.TREASURE);
-                    var lock = dice();
-                    targetCell.treasure = new TreasureBox(item, lock, true);
-                    targetCell.block = null;
+                treasureX = utils.random(World.MAX_Y);
+                treasureY = utils.random(World.MAX_X);
+                treasureZ = utils.random(World.MAX_X);
+                treasureCell = this.fields[treasureZ][treasureY][treasureX];
+                if (treasureZ != World.MIN_Z && treasureCell.field != Field.DOWNSTAIRS && treasureCell.field != Field.UPSTAIRS) {
                     break;
                 }
             }
-            var compassY;
-            var compassX;
-            while (true) {
-                compassY = utils.random(World.MAX_Y);
-                compassX = utils.random(World.MAX_X);
-                if (compassY != goalY && compassY != treasureY && compassX != goalX && compassX != treasureX) {
-                    this.compassPosition = new core.Position(compassX, compassY);
-                    var targetCell = this.fields[compassY][compassX];
-                    targetCell.field = Field.FLAT;
-                    var item = new Item("\u30B3\u30F3\u30D1\u30B9", ItemType.COMPASS);
-                    item.life.expand(400);
-                    item.life.add(400);
-                    var lock = dice();
-                    targetCell.treasure = new TreasureBox(item, lock);
-                    targetCell.block = null;
-                    break;
-                }
-            }
+            treasureCell.field = Field.FLAT;
+            var item = new Item("\u79D8\u5B9D\u300C" + faker.commerce.productName() + "\u300D", ItemType.TREASURE);
+            var lock = dice();
+            treasureCell.treasure = new TreasureBox(item, lock, true);
+            treasureCell.block = null;
+            this.treasurePosition = new core.Position(treasureX, treasureY, treasureZ);
         };
-        World.MAX_Y = 15;
+        World.MAX_Y = 4;
         World.MIN_Y = 0;
-        World.MAX_X = 15;
+        World.MAX_X = 4;
         World.MIN_X = 0;
+        World.MAX_Z = 4;
+        World.MIN_Z = 0;
         return World;
     }());
     core.World = World;
@@ -847,11 +867,12 @@ var appVm = new Vue({
         direction: {
             value: Direction.NORTH,
             display: '',
-            enable: false
         },
         has: {
-            compass: false,
             treasure: false,
+        },
+        enable: {
+            compass: false,
         },
         stock: {
             money: 400,
@@ -926,21 +947,18 @@ var appVm = new Vue({
             this.after();
         },
         search: function () {
-            var target = this.world.fields[this.position.y][this.position.x];
+            var target = this.world.getCell(this.position);
             switch (target.field) {
-                case Field.GOAL:
-                    if (this.has.treasure) {
-                        this.addMessage(this.world.name + "\u3092\u8131\u51FA\u3057\u305F.");
-                        this.addMessage('＊ おめでとう ＊', EmphasisColor.INVERSE);
-                        this.addMessage('こうして一行は宝を手に無事生還した. そして宴の後...');
-                        this.addMessage('彼らは各々の次なる冒険を求め旅立っていったのだった.');
-                        models.Users.clear();
-                        this.users = models.Users.find();
-                        this.world.make();
+                case Field.DOWNSTAIRS:
+                    if (World.MIN_Z < this.position.z) {
+                        this.addMessage('下に降りる階段がある.', EmphasisColor.INFO);
                     }
                     else {
-                        this.addUserMessage('出口だ. 宝を見つけたらここから脱出するぞ.');
+                        this.addMessage('島を脱出する船着き場がある.', EmphasisColor.INFO);
                     }
+                    break;
+                case Field.UPSTAIRS:
+                    this.addMessage('上に登る階段がある.', EmphasisColor.INFO);
                     break;
                 default:
                     if (target.treasure != null) {
@@ -957,116 +975,150 @@ var appVm = new Vue({
             this.after();
         },
         take: function () {
-            var target = this.world.fields[this.position.y][this.position.x];
-            if (target.treasure != null) {
-                if (0 < target.treasure.lock) {
-                    this.addMessage('鍵がかかっているようだ.');
-                }
-                else {
-                    this.addMessage('箱の中を覗いた.');
-                    var item = target.treasure.item;
-                    if (item != null) {
-                        this.addMessage(item.name + "\u304C\u5165\u3063\u3066\u3044\u305F.", EmphasisColor.SUCCESS);
-                        switch (item.itemType) {
-                            case ItemType.OINTMENT:
-                                for (var i = 0; i < this.users.length; i++) {
-                                    var user = this.users[i];
-                                    user.life.add(50);
-                                }
-                                this.addMessage('君たちは傷と疲れを癒した.', EmphasisColor.SUCCESS);
-                                break;
-                            case ItemType.MEAT:
-                                for (var i = 0; i < this.users.length; i++) {
-                                    var user = this.users[i];
-                                    user.food.add(100);
-                                }
-                                this.addMessage('君たちは空腹を満たした.', EmphasisColor.SUCCESS);
-                                break;
-                            case ItemType.PAPER:
-                                if (item.description != null && item.description != '') {
-                                    this.addMessage(item.description, EmphasisColor.INVERSE);
-                                }
-                                else {
-                                    this.addMessage('何か書いてあるがそれを読むことはできなかった...');
-                                }
-                                break;
-                            case ItemType.TREASURE:
-                                this.has.treasure = true;
-                                this.addUserMessage("\u91CE\u90CE\u3069\u3082\u5F15\u304D\u4E0A\u3052\u308B\u305E! \u51FA\u53E3\u3092\u63A2\u305B!");
-                                break;
-                            case ItemType.COMPASS:
-                                this.has.compass = true;
-                                this.stock.compass = 100;
-                                this.addUserMessage("\u30B3\u30F3\u30D1\u30B9\u3092\u8D77\u52D5\u3057\u308D! \u73FE\u5728\u4F4D\u7F6E\u3068\u65B9\u89D2\u304C\u308F\u304B\u308B\u305E!");
+            var target = this.world.getCell(this.position);
+            switch (target.field) {
+                case Field.DOWNSTAIRS:
+                    if (World.MIN_Z < this.position.z) {
+                        this.position.z--;
+                        if (World.MIN_Z < this.position.z) {
+                            this.addMessage("\u968E\u6BB5\u3092\u964D\u308A\u5854\u306E " + this.position.z + " \u968E\u3078\u3068\u9032\u3093\u3060...", EmphasisColor.INFO);
                         }
-                        target.treasure.item = null;
+                        else {
+                            this.addMessage('階段を降り地上へと戻った.', EmphasisColor.INFO);
+                        }
+                        this.afterAction();
                     }
                     else {
-                        this.addMessage('中はもぬけの殻だった...');
+                        if (this.has.treasure) {
+                            this.addMessage(this.world.name + "\u3092\u8131\u51FA\u3057\u305F.");
+                            this.addMessage('＊ おめでとう ＊', EmphasisColor.INVERSE);
+                            this.addMessage('こうして一行は宝を手に無事生還した. そして宴の後...');
+                            this.addMessage('彼らは各々の次なる冒険を求め旅立っていったのだった.');
+                            models.Users.clear();
+                            this.users = models.Users.find();
+                            this.world.make();
+                        }
+                        else {
+                            this.addUserMessage('秘宝を手に入れるまでは帰れないぜ.');
+                        }
                     }
-                }
-            }
-            else if (target.spring != null) {
-                var hasChanged = false;
-                this.addMessage(target.spring.name + "\u3092\u98F2\u3093\u3060.");
-                for (var i = 0; i < this.users.length; i++) {
-                    var user = this.users[i];
-                    var amount = target.spring.getAmount();
-                    user.water.add(amount);
-                    switch (target.spring.type) {
-                        case SpringType.POISON:
-                            user.life.sub(amount);
-                            break;
-                        case SpringType.LIFE_UP:
-                            switch (dice()) {
-                                case 1:
-                                case 2:
-                                    user.life.expand(dice());
-                                    hasChanged = true;
+                    break;
+                case Field.UPSTAIRS:
+                    this.position.z++;
+                    this.addMessage("\u968E\u6BB5\u3092\u767B\u308A\u5854\u306E " + this.position.z + " \u968E\u3078\u3068\u9032\u3093\u3060...", EmphasisColor.INFO);
+                    this.afterAction();
+                    break;
+                default:
+                    if (target.treasure != null) {
+                        if (0 < target.treasure.lock) {
+                            this.addMessage('鍵がかかっているようだ.');
+                        }
+                        else {
+                            this.addMessage('箱の中を覗いた.');
+                            var item = target.treasure.item;
+                            if (item != null) {
+                                this.addMessage(item.name + "\u304C\u5165\u3063\u3066\u3044\u305F.", EmphasisColor.SUCCESS);
+                                switch (item.itemType) {
+                                    case ItemType.OINTMENT:
+                                        for (var i = 0; i < this.users.length; i++) {
+                                            var user = this.users[i];
+                                            user.life.add(50);
+                                        }
+                                        this.addMessage('君たちは傷と疲れを癒した.', EmphasisColor.SUCCESS);
+                                        break;
+                                    case ItemType.MEAT:
+                                        for (var i = 0; i < this.users.length; i++) {
+                                            var user = this.users[i];
+                                            user.food.add(100);
+                                        }
+                                        this.addMessage('君たちは空腹を満たした.', EmphasisColor.SUCCESS);
+                                        break;
+                                    case ItemType.PAPER:
+                                        if (item.description != null && item.description != '') {
+                                            this.addMessage(item.description, EmphasisColor.INVERSE);
+                                        }
+                                        else {
+                                            this.addMessage('何か書いてあるがそれを読むことはできなかった...');
+                                        }
+                                        break;
+                                    case ItemType.TREASURE:
+                                        this.has.treasure = true;
+                                        this.addUserMessage("\u91CE\u90CE\u3069\u3082\u5F15\u304D\u4E0A\u3052\u308B\u305E! \u51FA\u53E3\u3092\u63A2\u305B!");
+                                        break;
+                                    case ItemType.COMPASS:
+                                        this.stock.compass += item.life.current;
+                                        this.addUserMessage("\u30B3\u30F3\u30D1\u30B9\u3092\u8D77\u52D5\u3057\u308D! \u73FE\u5728\u4F4D\u7F6E\u3068\u65B9\u89D2\u304C\u308F\u304B\u308B\u305E!");
+                                }
+                                target.treasure.item = null;
+                            }
+                            else {
+                                this.addMessage('中はもぬけの殻だった...');
+                            }
+                        }
+                    }
+                    else if (target.spring != null) {
+                        var hasChanged = false;
+                        this.addMessage(target.spring.name + "\u3092\u98F2\u3093\u3060.");
+                        for (var i = 0; i < this.users.length; i++) {
+                            var user = this.users[i];
+                            var amount = target.spring.getAmount();
+                            user.water.add(amount);
+                            switch (target.spring.type) {
+                                case SpringType.POISON:
+                                    user.life.sub(amount);
+                                    break;
+                                case SpringType.LIFE_UP:
+                                    switch (dice()) {
+                                        case 1:
+                                        case 2:
+                                            user.life.expand(dice());
+                                            hasChanged = true;
+                                            break;
+                                    }
+                                    break;
+                                case SpringType.LIFE_DOWN:
+                                    switch (dice()) {
+                                        case 1:
+                                        case 2:
+                                            user.life.contract(dice());
+                                            hasChanged = true;
+                                            break;
+                                    }
                                     break;
                             }
-                            break;
-                        case SpringType.LIFE_DOWN:
-                            switch (dice()) {
-                                case 1:
-                                case 2:
-                                    user.life.contract(dice());
-                                    hasChanged = true;
-                                    break;
-                            }
-                            break;
+                        }
+                        target.spring.life.sub(1);
+                        this.addMessage('喉が少し潤った.', EmphasisColor.SUCCESS);
+                        switch (target.spring.type) {
+                            case SpringType.POISON:
+                                this.addMessage('しかしこれは汚水だ! 体調が悪くなった...', EmphasisColor.DANGER);
+                                break;
+                            case SpringType.LIFE_UP:
+                                if (hasChanged) {
+                                    this.addMessage('生命力が漲った気がする...', EmphasisColor.SUCCESS);
+                                }
+                                break;
+                            case SpringType.LIFE_DOWN:
+                                if (hasChanged) {
+                                    this.addMessage('衰弱したような気がする...', EmphasisColor.INFO);
+                                }
+                                break;
+                        }
+                        if (target.spring.life.current < 1) {
+                            this.addMessage(target.spring.name + "\u306F\u5E72\u4E0A\u304C\u3063\u305F.");
+                            target.spring = null;
+                        }
+                        this.afterAction();
                     }
-                }
-                target.spring.life.sub(1);
-                this.addMessage('喉が少し潤った.', EmphasisColor.SUCCESS);
-                switch (target.spring.type) {
-                    case SpringType.POISON:
-                        this.addMessage('しかしこれは汚水だ! 体調が悪くなった...', EmphasisColor.DANGER);
-                        break;
-                    case SpringType.LIFE_UP:
-                        if (hasChanged) {
-                            this.addMessage('生命力が漲った気がする...', EmphasisColor.SUCCESS);
-                        }
-                        break;
-                    case SpringType.LIFE_DOWN:
-                        if (hasChanged) {
-                            this.addMessage('衰弱したような気がする...', EmphasisColor.INFO);
-                        }
-                        break;
-                }
-                if (target.spring.life.current < 1) {
-                    this.addMessage(target.spring.name + "\u306F\u5E72\u4E0A\u304C\u3063\u305F.");
-                    target.spring = null;
-                }
-                this.afterAction();
-            }
-            else {
-                this.addMessage('ここには手に取るようなものが何もない.');
+                    else {
+                        this.addMessage('ここには手に取るようなものが何もない.');
+                    }
+                    break;
             }
             this.after();
         },
         useKey: function () {
-            var target = this.world.fields[this.position.y][this.position.x];
+            var target = this.world.getCell(this.position);
             if (this.stock.key < 1) {
                 this.addMessage('鍵を持っていない.');
             }
@@ -1099,12 +1151,14 @@ var appVm = new Vue({
                 }
                 if (target.treasure.lock < 1) {
                     this.addMessage('箱が開いた!', EmphasisColor.SUCCESS);
+                    target.treasure.name = "\u958B\u3044\u305F" + target.treasure.name;
                 }
                 else if (!target.treasure.unbreakable) {
                     var damage = dice();
                     target.treasure.life.sub(damage);
                     if (target.treasure.life.current < 1) {
                         this.addMessage('錠が壊れてしまった...', EmphasisColor.INFO);
+                        target.treasure.name = "\u58CA\u308C\u305F" + target.treasure.name;
                     }
                 }
                 this.flow();
@@ -1144,10 +1198,7 @@ var appVm = new Vue({
                                                 memo = "\u3053\u306E\u8FF7\u5BAE\u306E\u51FA\u53E3\u306F " + this.world.goalPosition.toString() + " \u306E\u4F4D\u7F6E\u306B\u3042\u308B.";
                                                 break;
                                             case 2:
-                                                memo = "\u79D8\u5B9D\u306F " + this.world.goalPosition.toString() + " \u306E\u4F4D\u7F6E\u306B\u96A0\u3055\u308C\u3066\u3044\u308B.";
-                                                break;
-                                            case 3:
-                                                memo = "\u30B3\u30F3\u30D1\u30B9\u306F " + this.world.goalPosition.toString() + " \u306E\u4F4D\u7F6E\u306B\u96A0\u3055\u308C\u3066\u3044\u308B.";
+                                                memo = "\u79D8\u5B9D\u306F " + this.world.treasurePosition.toString() + " \u306E\u4F4D\u7F6E\u306B\u96A0\u3055\u308C\u3066\u3044\u308B.";
                                                 break;
                                         }
                                         item.description = memo;
@@ -1167,14 +1218,14 @@ var appVm = new Vue({
             this.after();
         },
         compass: function () {
-            if (this.has.compass) {
-                if (this.direction.enable) {
+            if (0 < this.stock.compass) {
+                if (this.enable.compass) {
                     this.addMessage('コンパスを止めた.', EmphasisColor.INFO);
-                    this.direction.enable = false;
+                    this.enable.compass = false;
                 }
                 else {
                     this.addMessage('コンパスを起動した.', EmphasisColor.INFO);
-                    this.direction.enable = true;
+                    this.enable.compass = true;
                 }
             }
             else {
@@ -1187,13 +1238,12 @@ var appVm = new Vue({
             switch (target.field) {
                 case Field.WALL:
                 case Field.BLOCK:
-                    var targetName = target.block.name;
-                    this.addMessage("\u76EE\u306E\u524D\u306B" + targetName + "." + target.block.life.impression(), EmphasisColor.INVERSE);
+                    var targetName = "" + target.block.name + target.block.life.impression();
+                    this.addMessage("\u76EE\u306E\u524D\u306B" + targetName + ".", EmphasisColor.INVERSE);
                     break;
-                case Field.FLAT:
-                case Field.GOAL:
+                default:
                     var forwardCell = this.world.getForwardCell(this.position, this.direction.value);
-                    if (forwardCell.treasure != null || forwardCell.spring != null) {
+                    if (forwardCell.field == Field.DOWNSTAIRS || forwardCell.field == Field.UPSTAIRS || forwardCell.treasure != null || forwardCell.spring != null) {
                         this.addMessage('前へ進んだ. 足元に何かある.', EmphasisColor.INFO);
                     }
                     else {
@@ -1255,8 +1305,7 @@ var appVm = new Vue({
                 case Field.BLOCK:
                     this.addMessage('何かがあって通れない.', EmphasisColor.INFO);
                     break;
-                case Field.FLAT:
-                case Field.GOAL:
+                default:
                     this.addMessage('後ろに下がった.', EmphasisColor.INFO);
                     var targetPosition = this.world.getBackPosition(this.position, this.direction.value);
                     this.position = targetPosition;
@@ -1274,8 +1323,7 @@ var appVm = new Vue({
                 case Field.BLOCK:
                     this.addMessage('何かがあって通れない.', EmphasisColor.INFO);
                     break;
-                case Field.FLAT:
-                case Field.GOAL:
+                default:
                     this.addMessage('左へ移動した.', EmphasisColor.INFO);
                     var targetPosition = this.world.getLeftPosition(this.position, this.direction.value);
                     this.position = targetPosition;
@@ -1293,8 +1341,7 @@ var appVm = new Vue({
                 case Field.BLOCK:
                     this.addMessage('何かがあって通れない.', EmphasisColor.INFO);
                     break;
-                case Field.FLAT:
-                case Field.GOAL:
+                default:
                     this.addMessage('右へ移動した.', EmphasisColor.INFO);
                     var targetPosition = this.world.getRightPosition(this.position, this.direction.value);
                     this.position = targetPosition;
@@ -1311,7 +1358,7 @@ var appVm = new Vue({
                 var user = this.users[i];
                 user.flow(amount);
             }
-            if (this.has.compass) {
+            if (this.enable.compass && 0 < this.stock.compass) {
                 this.stock.compass--;
             }
         },
@@ -1324,9 +1371,8 @@ var appVm = new Vue({
                     this.users = models.Users.find();
                 }
             }
-            if (this.has.compass && this.stock.compass < 1) {
-                this.direction.enable = false;
-                this.has.compass = false;
+            if (this.enable.compass && this.stock.compass < 1) {
+                this.enable.compass = false;
                 this.stock.compass = 0;
                 this.addMessage('コンパスの電池が切れた...');
             }
@@ -1336,7 +1382,7 @@ var appVm = new Vue({
         after: function () {
             this.topMessage = "\u4F4D\u7F6E: (" + this.position.x + "," + this.position.y + ")";
             if (this.users.length < 1) {
-                this.direction.enable = false;
+                this.enable.compass = false;
             }
             this.direction.display = this.getDirectionDisplay();
         },
@@ -1447,8 +1493,8 @@ var appVm = new Vue({
                                 switch (dice()) {
                                     case 1:
                                     case 2:
-                                        var position = World.getRandomPosition();
-                                        var target = this.world.fields[position.y][position.x];
+                                        var position = World.getRandomPosition(this.position.z);
+                                        var target = this.world.getCell(this.position);
                                         if (target.block != null) {
                                             var damage = Math.ceil(target.block.life.current / this.users.length);
                                             for (var i = 0; i < this.users.length; i++) {
