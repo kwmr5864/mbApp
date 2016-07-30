@@ -278,27 +278,28 @@ var core;
 (function (core) {
     var Direction = enums.Direction;
     var Position = (function () {
-        function Position(x, y) {
+        function Position(x, y, z) {
             this.x = x;
             this.y = y;
+            this.z = z;
         }
         Position.prototype.getForward = function (direction) {
             var position;
             switch (direction) {
                 case Direction.NORTH:
-                    position = new core.Position(this.x, this.y - 1);
+                    position = new core.Position(this.x, this.y - 1, this.z);
                     break;
                 case Direction.EAST:
-                    position = new core.Position(this.x + 1, this.y);
+                    position = new core.Position(this.x + 1, this.y, this.z);
                     break;
                 case Direction.SOUTH:
-                    position = new core.Position(this.x, this.y + 1);
+                    position = new core.Position(this.x, this.y + 1, this.z);
                     break;
                 case Direction.WEST:
-                    position = new core.Position(this.x - 1, this.y);
+                    position = new core.Position(this.x - 1, this.y, this.z);
                     break;
                 default:
-                    position = new core.Position(-1, -1);
+                    position = new core.Position(-1, -1, -1);
                     break;
             }
             return position;
@@ -307,19 +308,19 @@ var core;
             var position;
             switch (direction) {
                 case Direction.NORTH:
-                    position = new core.Position(this.x - 1, this.y);
+                    position = new core.Position(this.x - 1, this.y, this.z);
                     break;
                 case Direction.EAST:
-                    position = new core.Position(this.x, this.y - 1);
+                    position = new core.Position(this.x, this.y - 1, this.z);
                     break;
                 case Direction.SOUTH:
-                    position = new core.Position(this.x + 1, this.y);
+                    position = new core.Position(this.x + 1, this.y, this.z);
                     break;
                 case Direction.WEST:
-                    position = new core.Position(this.x, this.y + 1);
+                    position = new core.Position(this.x, this.y + 1, this.z);
                     break;
                 default:
-                    position = new core.Position(-1, -1);
+                    position = new core.Position(-1, -1, -1);
                     break;
             }
             return position;
@@ -328,19 +329,19 @@ var core;
             var position;
             switch (direction) {
                 case Direction.NORTH:
-                    position = new core.Position(this.x + 1, this.y);
+                    position = new core.Position(this.x + 1, this.y, this.z);
                     break;
                 case Direction.EAST:
-                    position = new core.Position(this.x, this.y + 1);
+                    position = new core.Position(this.x, this.y + 1, this.z);
                     break;
                 case Direction.SOUTH:
-                    position = new core.Position(this.x - 1, this.y);
+                    position = new core.Position(this.x - 1, this.y, this.z);
                     break;
                 case Direction.WEST:
-                    position = new core.Position(this.x, this.y - 1);
+                    position = new core.Position(this.x, this.y - 1, this.z);
                     break;
                 default:
-                    position = new core.Position(-1, -1);
+                    position = new core.Position(-1, -1, -1);
                     break;
             }
             return position;
@@ -349,19 +350,19 @@ var core;
             var position;
             switch (direction) {
                 case Direction.NORTH:
-                    position = new core.Position(this.x, this.y + 1);
+                    position = new core.Position(this.x, this.y + 1, this.z);
                     break;
                 case Direction.EAST:
-                    position = new core.Position(this.x - 1, this.y);
+                    position = new core.Position(this.x - 1, this.y, this.z);
                     break;
                 case Direction.SOUTH:
-                    position = new core.Position(this.x, this.y - 1);
+                    position = new core.Position(this.x, this.y - 1, this.z);
                     break;
                 case Direction.WEST:
-                    position = new core.Position(this.x + 1, this.y);
+                    position = new core.Position(this.x + 1, this.y, this.z);
                     break;
                 default:
-                    position = new core.Position(-1, -1);
+                    position = new core.Position(-1, -1, -1);
                     break;
             }
             return position;
@@ -399,19 +400,19 @@ var core;
         };
         World.prototype.getForwardCell = function (position, direction) {
             var targetPosition = this.getForwardPosition(position, direction);
-            return this.fields[targetPosition.y][targetPosition.x];
+            return this.fields[targetPosition.z][targetPosition.y][targetPosition.x];
         };
         World.prototype.getBackCell = function (position, direction) {
             var targetPosition = this.getBackPosition(position, direction);
-            return this.fields[targetPosition.y][targetPosition.x];
+            return this.fields[targetPosition.z][targetPosition.y][targetPosition.x];
         };
         World.prototype.getLeftCell = function (position, direction) {
             var targetPosition = this.getLeftPosition(position, direction);
-            return this.fields[targetPosition.y][targetPosition.x];
+            return this.fields[targetPosition.z][targetPosition.y][targetPosition.x];
         };
         World.prototype.getRightCell = function (position, direction) {
             var targetPosition = this.getRightPosition(position, direction);
-            return this.fields[targetPosition.y][targetPosition.x];
+            return this.fields[targetPosition.z][targetPosition.y][targetPosition.x];
         };
         World.prototype.getForwardPosition = function (position, direction) {
             var targetPosition = position.getForward(direction);
@@ -517,28 +518,33 @@ var core;
             }
             return targetPosition;
         };
-        World.getRandomPosition = function () {
-            return new core.Position(utils.random(World.MAX_Y), utils.random(World.MAX_X));
+        World.getRandomPosition = function (z) {
+            if (z === void 0) { z = World.MIN_Z; }
+            return new core.Position(utils.random(World.MAX_X), utils.random(World.MAX_Y), z);
         };
         World.prototype.setFields = function () {
-            this.fields = new Array(World.MAX_Y + 1);
-            for (var i = 0; i <= World.MAX_Y; i++) {
-                var row = new Array(World.MAX_X + 1);
-                for (var j = 0; j <= World.MAX_X; j++) {
-                    row[j] = new Cell(Field.FLAT);
-                    switch (dice()) {
-                        case 4:
-                            row[j].treasure = World.getTreasureBox();
-                            break;
-                        case 5:
-                            row[j].spring = World.getSpring();
-                            break;
-                        case 6:
-                            row[j] = World.getBlock();
-                            break;
+            this.fields = new Array(World.MAX_Z + 1);
+            for (var k = 0; k <= World.MAX_Z; k++) {
+                var rows = new Array(World.MAX_Y + 1);
+                for (var j = 0; j <= World.MAX_Y; j++) {
+                    var row = new Array(World.MAX_X + 1);
+                    for (var i = 0; i <= World.MAX_X; i++) {
+                        row[i] = new Cell(Field.FLAT);
+                        switch (dice()) {
+                            case 4:
+                                row[i].treasure = World.getTreasureBox();
+                                break;
+                            case 5:
+                                row[i].spring = World.getSpring();
+                                break;
+                            case 6:
+                                row[i] = World.getBlock();
+                                break;
+                        }
                     }
+                    rows[j] = row;
                 }
-                this.fields[i] = row;
+                this.fields[k] = rows;
             }
         };
         World.getTreasureBox = function () {
@@ -588,21 +594,22 @@ var core;
             return cell;
         };
         World.prototype.setGoal = function () {
-            var goalY = utils.random(World.MAX_Y);
             var goalX = utils.random(World.MAX_X);
-            this.goalPosition = new core.Position(goalX, goalY);
-            var goalCell = this.fields[goalY][goalX];
+            var goalY = utils.random(World.MAX_Y);
+            var goalZ = World.MIN_Z;
+            this.goalPosition = new core.Position(goalX, goalY, goalZ);
+            var goalCell = this.fields[goalZ][goalY][goalX];
             goalCell.field = Field.GOAL;
             goalCell.treasure = null;
             goalCell.block = null;
-            var treasureY;
-            var treasureX;
+            var treasureX = utils.random(World.MAX_Y);
+            var treasureY = utils.random(World.MAX_X);
+            var treasureZ;
             while (true) {
-                treasureY = utils.random(World.MAX_Y);
-                treasureX = utils.random(World.MAX_X);
-                if (treasureY != goalY && treasureX != goalX) {
-                    this.treasurePosition = new core.Position(treasureX, treasureY);
-                    var targetCell = this.fields[treasureY][treasureX];
+                treasureZ = utils.random(World.MAX_X);
+                if (treasureZ != World.MIN_Z) {
+                    this.treasurePosition = new core.Position(treasureX, treasureY, treasureZ);
+                    var targetCell = this.fields[treasureZ][treasureY][treasureX];
                     targetCell.field = Field.FLAT;
                     var item = new Item("\u79D8\u5B9D\u300C" + faker.commerce.productName() + "\u300D", ItemType.TREASURE);
                     var lock = dice();
@@ -611,14 +618,17 @@ var core;
                     break;
                 }
             }
-            var compassY;
             var compassX;
+            var compassY;
+            var compassZ;
             while (true) {
-                compassY = utils.random(World.MAX_Y);
                 compassX = utils.random(World.MAX_X);
-                if (compassY != goalY && compassY != treasureY && compassX != goalX && compassX != treasureX) {
-                    this.compassPosition = new core.Position(compassX, compassY);
-                    var targetCell = this.fields[compassY][compassX];
+                compassY = utils.random(World.MAX_Y);
+                compassZ = utils.random(World.MAX_Z);
+                if (!(compassX == goalX && compassY == goalY && compassZ == goalZ)
+                    && !(compassX == treasureX && compassY == treasureY && compassZ == treasureZ)) {
+                    this.compassPosition = new core.Position(compassX, compassY, compassZ);
+                    var targetCell = this.fields[compassZ][compassY][compassX];
                     targetCell.field = Field.FLAT;
                     var item = new Item("\u30B3\u30F3\u30D1\u30B9", ItemType.COMPASS);
                     item.life.expand(400);
@@ -630,10 +640,12 @@ var core;
                 }
             }
         };
-        World.MAX_Y = 15;
+        World.MAX_Y = 4;
         World.MIN_Y = 0;
-        World.MAX_X = 15;
+        World.MAX_X = 4;
         World.MIN_X = 0;
+        World.MAX_Z = 4;
+        World.MIN_Z = 0;
         return World;
     }());
     core.World = World;
@@ -926,7 +938,7 @@ var appVm = new Vue({
             this.after();
         },
         search: function () {
-            var target = this.world.fields[this.position.y][this.position.x];
+            var target = this.world.fields[this.position.z][this.position.y][this.position.x];
             switch (target.field) {
                 case Field.GOAL:
                     if (this.has.treasure) {
@@ -957,7 +969,7 @@ var appVm = new Vue({
             this.after();
         },
         take: function () {
-            var target = this.world.fields[this.position.y][this.position.x];
+            var target = this.world.fields[this.position.z][this.position.y][this.position.x];
             if (target.treasure != null) {
                 if (0 < target.treasure.lock) {
                     this.addMessage('鍵がかかっているようだ.');
@@ -1066,7 +1078,7 @@ var appVm = new Vue({
             this.after();
         },
         useKey: function () {
-            var target = this.world.fields[this.position.y][this.position.x];
+            var target = this.world.fields[this.position.z][this.position.y][this.position.x];
             if (this.stock.key < 1) {
                 this.addMessage('鍵を持っていない.');
             }
@@ -1447,8 +1459,8 @@ var appVm = new Vue({
                                 switch (dice()) {
                                     case 1:
                                     case 2:
-                                        var position = World.getRandomPosition();
-                                        var target = this.world.fields[position.y][position.x];
+                                        var position = World.getRandomPosition(this.position.z);
+                                        var target = this.world.fields[position.z][position.y][position.x];
                                         if (target.block != null) {
                                             var damage = Math.ceil(target.block.life.current / this.users.length);
                                             for (var i = 0; i < this.users.length; i++) {

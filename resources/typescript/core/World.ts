@@ -27,12 +27,14 @@ module core {
     import SpringType = enums.SpringType;
 
     export class World {
-        public static MAX_Y = 15
+        public static MAX_Y = 4
         public static MIN_Y = 0
-        public static MAX_X = 15
+        public static MAX_X = 4
         public static MIN_X = 0
+        public static MAX_Z = 4
+        public static MIN_Z = 0
 
-        public fields: Cell[][]
+        public fields: Cell[][][]
         public goalPosition: core.Position
         public treasurePosition: core.Position
         public compassPosition: core.Position
@@ -52,25 +54,25 @@ module core {
         public getForwardCell(position: core.Position, direction: Direction): Cell {
             var targetPosition = this.getForwardPosition(position, direction)
 
-            return this.fields[targetPosition.y][targetPosition.x]
+            return this.fields[targetPosition.z][targetPosition.y][targetPosition.x]
         }
 
         public getBackCell(position: core.Position, direction: Direction): Cell {
             var targetPosition = this.getBackPosition(position, direction)
 
-            return this.fields[targetPosition.y][targetPosition.x]
+            return this.fields[targetPosition.z][targetPosition.y][targetPosition.x]
         }
 
         public getLeftCell(position: core.Position, direction: Direction): Cell {
             var targetPosition = this.getLeftPosition(position, direction)
 
-            return this.fields[targetPosition.y][targetPosition.x]
+            return this.fields[targetPosition.z][targetPosition.y][targetPosition.x]
         }
 
         public getRightCell(position: core.Position, direction: Direction): Cell {
             var targetPosition = this.getRightPosition(position, direction)
 
-            return this.fields[targetPosition.y][targetPosition.x]
+            return this.fields[targetPosition.z][targetPosition.y][targetPosition.x]
         }
 
         public getForwardPosition(position: core.Position, direction: Direction): core.Position {
@@ -185,29 +187,33 @@ module core {
             return targetPosition
         }
 
-        public static getRandomPosition(): core.Position {
-            return new core.Position(utils.random(World.MAX_Y), utils.random(World.MAX_X))
+        public static getRandomPosition(z: number = World.MIN_Z): core.Position {
+            return new core.Position(utils.random(World.MAX_X), utils.random(World.MAX_Y), z)
         }
 
         private setFields() {
-            this.fields = new Array(World.MAX_Y + 1)
-            for (var i = 0; i <= World.MAX_Y; i++) {
-                var row = new Array(World.MAX_X + 1)
-                for (var j = 0; j <= World.MAX_X; j++) {
-                    row[j] = new Cell(Field.FLAT)
-                    switch (dice()) {
-                        case 4:
-                            row[j].treasure = World.getTreasureBox()
-                            break
-                        case 5:
-                            row[j].spring = World.getSpring()
-                            break
-                        case 6:
-                            row[j] = World.getBlock()
-                            break
+            this.fields = new Array(World.MAX_Z + 1)
+            for (var k = 0; k <= World.MAX_Z; k++) {
+                var rows = new Array(World.MAX_Y + 1)
+                for (var j = 0; j <= World.MAX_Y; j++) {
+                    var row = new Array(World.MAX_X + 1)
+                    for (var i = 0; i <= World.MAX_X; i++) {
+                        row[i] = new Cell(Field.FLAT)
+                        switch (dice()) {
+                            case 4:
+                                row[i].treasure = World.getTreasureBox()
+                                break
+                            case 5:
+                                row[i].spring = World.getSpring()
+                                break
+                            case 6:
+                                row[i] = World.getBlock()
+                                break
+                        }
                     }
+                    rows[j] = row
                 }
-                this.fields[i] = row
+                this.fields[k] = rows
             }
         }
 
@@ -265,22 +271,23 @@ module core {
 
         private setGoal() {
             // 出口の設置
-            let goalY = utils.random(World.MAX_Y)
             let goalX = utils.random(World.MAX_X)
-            this.goalPosition = new Position(goalX, goalY)
-            var goalCell = this.fields[goalY][goalX]
+            let goalY = utils.random(World.MAX_Y)
+            let goalZ = World.MIN_Z
+            this.goalPosition = new Position(goalX, goalY, goalZ)
+            var goalCell = this.fields[goalZ][goalY][goalX]
             goalCell.field = Field.GOAL
             goalCell.treasure = null
             goalCell.block = null
             // 出口以外の場所に秘宝を設置
-            var treasureY: number
-            var treasureX: number
+            var treasureX: number = utils.random(World.MAX_Y)
+            var treasureY: number = utils.random(World.MAX_X)
+            var treasureZ: number
             while (true) {
-                treasureY = utils.random(World.MAX_Y)
-                treasureX = utils.random(World.MAX_X)
-                if (treasureY != goalY && treasureX != goalX) {
-                    this.treasurePosition = new Position(treasureX, treasureY)
-                    var targetCell = this.fields[treasureY][treasureX]
+                treasureZ = utils.random(World.MAX_X)
+                if (treasureZ != World.MIN_Z) {
+                    this.treasurePosition = new Position(treasureX, treasureY, treasureZ)
+                    var targetCell = this.fields[treasureZ][treasureY][treasureX]
                     targetCell.field = Field.FLAT
                     var item = new Item(`秘宝「${faker.commerce.productName()}」`, ItemType.TREASURE)
                     let lock = dice()
@@ -290,14 +297,17 @@ module core {
                 }
             }
             // 出口と秘宝以外の場所にコンパスを設置
-            var compassY: number
             var compassX: number
+            var compassY: number
+            var compassZ: number
             while (true) {
-                compassY = utils.random(World.MAX_Y)
                 compassX = utils.random(World.MAX_X)
-                if (compassY != goalY && compassY != treasureY && compassX != goalX && compassX != treasureX) {
-                    this.compassPosition = new Position(compassX, compassY)
-                    var targetCell = this.fields[compassY][compassX]
+                compassY = utils.random(World.MAX_Y)
+                compassZ = utils.random(World.MAX_Z)
+                if (!(compassX == goalX && compassY == goalY && compassZ == goalZ)
+                    && !(compassX == treasureX && compassY == treasureY && compassZ == treasureZ)) {
+                    this.compassPosition = new Position(compassX, compassY, compassZ)
+                    var targetCell = this.fields[compassZ][compassY][compassX]
                     targetCell.field = Field.FLAT
                     var item = new Item(`コンパス`, ItemType.COMPASS)
                     item.life.expand(400)
