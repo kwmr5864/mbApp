@@ -14,31 +14,69 @@ module entities {
             public baseAmount: number = 0,
             public addAmount: number = 0
         ) {}
-        public static random(): Trap {
+        public static random(level: number): Trap {
             var trap: Trap = null
-            switch (dice(2)) {
-                case 5:
-                    trap = new Trap('ワープゾーン', TrapType.WARP)
+            var warp = new Trap('ワープゾーン', TrapType.WARP)
+            var rotation = new Trap('回転床', TrapType.ROTATION)
+
+            switch (level) {
+                case 1:
+                    switch (dice()) {
+                        case 1:
+                            trap = rotation
+                            break
+                        case 2:
+                            trap = new Trap('投石', TrapType.SLING, TargetRange.ONE, 0, 1)
+                            break
+                    }
                     break
-                case 6:
-                    trap = new Trap('回転床', TrapType.ROTATION)
+                case 2:
+                    switch (dice()) {
+                        case 1:
+                            trap = rotation
+                            break
+                        case 2:
+                            trap = new Trap('クロスボウの矢', TrapType.CROSSBOW, TargetRange.ONE, 0, 5)
+                            break
+                        case 3:
+                            trap = new Trap('落石', TrapType.SLING, TargetRange.ALL, 0, 5)
+                            break
+                    }
                     break
-                case 7:
-                    trap = new Trap('投石', TrapType.SLING, TargetRange.ONE, 5, 1)
+                case 3:
+                    switch (dice()) {
+                        case 1:
+                            trap = rotation
+                            break
+                        case 2:
+                            trap = new Trap('火炎放射', TrapType.BOMB, TargetRange.ONE, 0, 10)
+                            break
+                        case 3:
+                            trap = new Trap('毒ガス', TrapType.GAS, TargetRange.ALL, 20, 1)
+                            break
+                        case 4:
+                            trap = warp
+                            break
+                    }
                     break
-                case 8:
-                    trap = new Trap('クロスボウの矢', TrapType.CROSSBOW, TargetRange.ONE, 10, 5)
-                    break
-                case 9:
-                    trap = new Trap('毒ガス', TrapType.GAS, TargetRange.ALL, 20, 1)
-                    break
-                case 10:
-                    trap = new Trap('爆弾', TrapType.BOMB, TargetRange.ALL, 40, 4)
-                    break
-                case 12:
-                    trap = new Trap('チェーンソー', TrapType.CHAINSAW, TargetRange.ONE, 10000)
-                    break
-                default:
+                case 4:
+                    switch (dice()) {
+                        case 1:
+                            trap = rotation
+                            break
+                        case 2:
+                            trap = new Trap('電撃', TrapType.BOMB, TargetRange.ONE, 0, 15)
+                            break
+                        case 3:
+                            trap = new Trap('爆弾', TrapType.BOMB, TargetRange.ALL, 0, 10)
+                            break
+                        case 4:
+                            trap = warp
+                            break
+                        case 5:
+                            trap = new Trap('チェーンソー', TrapType.CHAINSAW, TargetRange.ONE, 10000)
+                            break
+                    }
                     break
             }
 

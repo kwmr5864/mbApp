@@ -228,27 +228,82 @@ module core {
 
         private setFields() {
             this.fields = new Array(World.MAX_Z + 1)
-            for (var k = 0; k <= World.MAX_Z; k++) {
+            for (var level = World.MIN_Z; level <= World.MAX_Z; level++) {
                 var rows = new Array(World.MAX_Y + 1)
                 for (var j = 0; j <= World.MAX_Y; j++) {
                     var row = new Array(World.MAX_X + 1)
                     for (var i = 0; i <= World.MAX_X; i++) {
                         row[i] = new Cell(Field.FLAT)
-                        switch (dice()) {
+                        switch (level) {
+                            case 0:
+                                switch (dice()) {
+                                    case 1:
+                                    case 2:
+                                        row[i] = World.getRandomBlock(level)
+                                        break
+                                    case 3:
+                                        row[i].spring = World.getSpring()
+                                        break
+                                }
+                                break
+                            case 1:
+                                switch (dice()) {
+                                    case 1:
+                                    case 2:
+                                        row[i] = World.getRandomBlock(level)
+                                        break
+                                    case 3:
+                                        row[i].spring = World.getSpring()
+                                        break
+
+                                }
+                                break
+                            case 2:
+                                switch (dice()) {
+                                    case 1:
+                                    case 2:
+                                        row[i] = World.getRandomBlock(level)
+                                        break
+                                    case 3:
+                                        row[i].spring = World.getSpring()
+                                        break
+                                    case 6:
+                                        row[i].treasure = World.getTreasureBox()
+                                        break
+
+                                }
+                                break
+                            case 3:
+                                switch (dice()) {
+                                    case 1:
+                                    case 2:
+                                        row[i] = World.getRandomBlock(level)
+                                        break
+                                    case 3:
+                                        row[i].spring = World.getSpring()
+                                        break
+                                    case 6:
+                                        row[i].treasure = World.getTreasureBox()
+                                        break
+                                }
+                                break
                             case 4:
-                                row[i].treasure = World.getTreasureBox()
-                                break
-                            case 5:
-                                row[i].spring = World.getSpring()
-                                break
-                            case 6:
-                                row[i] = World.getBlock()
+                                switch (dice()) {
+                                    case 1:
+                                    case 2:
+                                        row[i] = World.getRandomBlock(level)
+                                        break
+                                    case 5:
+                                    case 6:
+                                        row[i].treasure = World.getTreasureBox()
+                                        break
+                                }
                                 break
                         }
                     }
                     rows[j] = row
                 }
-                this.fields[k] = rows
+                this.fields[level] = rows
             }
         }
 
@@ -279,25 +334,78 @@ module core {
             return new Spring(springType)
         }
 
-        private static getBlock(): Cell {
-            var cell = new Cell(Field.FLAT)
-            cell.field = Field.BLOCK
-            switch (dice()) {
+        private static getRandomBlock(level: number): Cell {
+            var cell = new Cell(Field.BLOCK)
+            var tussock = cell.block = new entities.Tussock()
+            var tree = cell.block = new entities.Tree()
+            var rock = cell.block = new entities.Rock()
+            var box = cell.block = new entities.WoodenBox()
+            var wall = cell.block = new entities.Wall()
+
+            switch (level) {
+                case 0:
+                    switch (dice()) {
+                        case 1:
+                        case 2:
+                            cell.block = tree
+                            break
+                        default:
+                            cell.block = tussock
+                            break
+                    }
+                    break
                 case 1:
-                    cell.field = Field.WALL
-                    cell.block = new entities.Wall()
+                    switch (dice()) {
+                        case 1:
+                        case 2:
+                            cell.block = rock
+                            break
+                        default:
+                            cell.block = box
+                            break
+                    }
                     break
                 case 2:
-                    cell.block = new entities.Rock()
+                    switch (dice()) {
+                        case 1:
+                        case 2:
+                        case 3:
+                            cell.block = box
+                            break
+                        default:
+                            cell.block = rock
+                            break
+                    }
                     break
                 case 3:
-                    cell.block = new entities.Tree()
+                    switch (dice()) {
+                        case 1:
+                        case 2:
+                            cell.block = box
+                            break
+                        case 3:
+                            cell.field = Field.WALL
+                            cell.block = wall
+                            break
+                        default:
+                            cell.block = rock
+                            break
+                    }
                     break
                 case 4:
-                    cell.block = new entities.Tussock()
-                    break
-                default:
-                    cell.block = new entities.WoodenBox()
+                    switch (dice()) {
+                        case 1:
+                        case 2:
+                            cell.block = rock
+                            break
+                        case 3:
+                            cell.block = box
+                            break
+                        default:
+                            cell.block = wall
+                            cell.field = Field.WALL
+                            break
+                    }
                     break
             }
 
