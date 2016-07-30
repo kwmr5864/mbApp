@@ -14,14 +14,15 @@ module entities {
             var item: Item = null
             switch (dice()) {
                 case 1:
-                case 2:
                     item = new Item('塗り薬', ItemType.OINTMENT)
                     break
-                case 3:
-                case 4:
+                case 2:
                     item = new Item('肉', ItemType.MEAT)
                     break
-                case 5:
+                case 3:
+                    item = new Item(`コンパス`, ItemType.COMPASS)
+                    break
+                case 4:
                     item = new Item('紙切れ', ItemType.PAPER)
                     break
             }

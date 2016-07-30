@@ -37,7 +37,6 @@ module core {
         public fields: Cell[][][]
         public goalPosition: core.Position
         public treasurePosition: core.Position
-        public compassPosition: core.Position
 
         constructor(public name: string = '') {
             if (name == '') {
@@ -48,7 +47,7 @@ module core {
 
         public make() {
             this.setFields()
-            this.setGoal()
+            this.setObjects()
         }
 
         public getCell(position: core.Position): Cell {
@@ -275,55 +274,58 @@ module core {
             return cell
         }
 
-        private setGoal() {
-            // 出口の設置
-            let goalX = utils.random(World.MAX_X)
-            let goalY = utils.random(World.MAX_Y)
-            let goalZ = World.MIN_Z
-            this.goalPosition = new Position(goalX, goalY, goalZ)
-            var goalCell = this.fields[goalZ][goalY][goalX]
-            goalCell.field = Field.GOAL
-            goalCell.treasure = null
-            goalCell.block = null
-            // 出口以外の場所に秘宝を設置
-            var treasureX: number = utils.random(World.MAX_Y)
-            var treasureY: number = utils.random(World.MAX_X)
+        private setObjects() {
+            // 登り階段の設置
+            for (var z = World.MIN_Z; z < World.MAX_Z; z++) {
+                let upX = utils.random(World.MAX_X)
+                let upY = utils.random(World.MAX_Y)
+                var upCell = this.fields[z][upY][upX]
+                upCell.field = Field.UPSTAIRS
+                upCell.treasure = null
+                upCell.block = null
+            }
+
+            // 降り階段の設置
+            for (var z = World.MIN_Z; z <= World.MAX_Z; z++) {
+                var downX: number
+                var downY: number
+                var downCell: Cell
+                while (true) {
+                    downX = utils.random(World.MAX_X)
+                    downY = utils.random(World.MAX_Y)
+                    downCell = this.fields[z][downY][downX]
+                    if (downCell.field != Field.DOWNSTAIRS) {
+                        break
+                    }
+                }
+                downCell.field = Field.DOWNSTAIRS
+                downCell.treasure = null
+                downCell.block = null
+                if (z == World.MIN_Z) {
+                    this.goalPosition = new core.Position(z, downY, downX)
+                }
+            }
+
+            // 秘宝を設置
+            var treasureX: number
+            var treasureY: number
             var treasureZ: number
+            var treasureCell: Cell
             while (true) {
+                treasureX = utils.random(World.MAX_Y)
+                treasureY = utils.random(World.MAX_X)
                 treasureZ = utils.random(World.MAX_X)
-                if (treasureZ != World.MIN_Z) {
-                    this.treasurePosition = new Position(treasureX, treasureY, treasureZ)
-                    var targetCell = this.fields[treasureZ][treasureY][treasureX]
-                    targetCell.field = Field.FLAT
-                    var item = new Item(`秘宝「${faker.commerce.productName()}」`, ItemType.TREASURE)
-                    let lock = dice()
-                    targetCell.treasure = new TreasureBox(item, lock, true)
-                    targetCell.block = null
+                treasureCell = this.fields[treasureZ][treasureY][treasureX]
+                if (treasureZ != World.MIN_Z && treasureCell.field != Field.DOWNSTAIRS && treasureCell.field != Field.UPSTAIRS) {
                     break
                 }
             }
-            // 出口と秘宝以外の場所にコンパスを設置
-            var compassX: number
-            var compassY: number
-            var compassZ: number
-            while (true) {
-                compassX = utils.random(World.MAX_X)
-                compassY = utils.random(World.MAX_Y)
-                compassZ = utils.random(World.MAX_Z)
-                if (!(compassX == goalX && compassY == goalY && compassZ == goalZ)
-                    && !(compassX == treasureX && compassY == treasureY && compassZ == treasureZ)) {
-                    this.compassPosition = new Position(compassX, compassY, compassZ)
-                    var targetCell = this.fields[compassZ][compassY][compassX]
-                    targetCell.field = Field.FLAT
-                    var item = new Item(`コンパス`, ItemType.COMPASS)
-                    item.life.expand(400)
-                    item.life.add(400)
-                    let lock = dice()
-                    targetCell.treasure = new TreasureBox(item, lock)
-                    targetCell.block = null
-                    break
-                }
-            }
+            treasureCell.field = Field.FLAT
+            var item = new Item(`秘宝「${faker.commerce.productName()}」`, ItemType.TREASURE)
+            let lock = dice()
+            treasureCell.treasure = new TreasureBox(item, lock, true)
+            treasureCell.block = null
+            this.treasurePosition = new Position(treasureX, treasureY, treasureZ)
         }
     }
 }

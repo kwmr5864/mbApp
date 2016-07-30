@@ -29,11 +29,11 @@ module core {
             if (this.max <= this.current) {
                 return ''
             } else if (this.current < 5) {
-                return ' (瀕死)'
+                return ' (ボロボロ)'
             } else if (this.current < 10) {
-                return ' (重傷)'
+                return ' (傷だらけ)'
             } else if (this.current < 30) {
-                return ' (傷ついている)'
+                return ' (傷がある)'
             } else if (this.current < 1000) {
                 return ''
             } else {
