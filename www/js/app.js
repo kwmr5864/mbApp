@@ -630,14 +630,13 @@ var core;
             }
             var treasureX;
             var treasureY;
-            var treasureZ;
+            var treasureZ = World.MAX_X;
             var treasureCell;
             while (true) {
                 treasureX = utils.random(World.MAX_Y);
                 treasureY = utils.random(World.MAX_X);
-                treasureZ = utils.random(World.MAX_X);
                 treasureCell = this.fields[treasureZ][treasureY][treasureX];
-                if (treasureZ != World.MIN_Z && treasureCell.field != Field.DOWNSTAIRS && treasureCell.field != Field.UPSTAIRS) {
+                if (treasureCell.field != Field.DOWNSTAIRS && treasureCell.field != Field.UPSTAIRS) {
                     break;
                 }
             }

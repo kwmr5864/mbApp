@@ -275,7 +275,7 @@ module core {
         }
 
         private setObjects() {
-            // 登り階段の設置
+            // 最上階以外に登り階段を設置
             for (var z = World.MIN_Z; z < World.MAX_Z; z++) {
                 let upX = utils.random(World.MAX_X)
                 let upY = utils.random(World.MAX_Y)
@@ -285,7 +285,7 @@ module core {
                 upCell.block = null
             }
 
-            // 降り階段の設置
+            // 地上を含む全ての階層に降り階段を設置
             for (var z = World.MIN_Z; z <= World.MAX_Z; z++) {
                 var downX: number
                 var downY: number
@@ -306,17 +306,16 @@ module core {
                 }
             }
 
-            // 秘宝を設置
+            // 最上階に秘宝を設置
             var treasureX: number
             var treasureY: number
-            var treasureZ: number
+            var treasureZ = World.MAX_X
             var treasureCell: Cell
             while (true) {
                 treasureX = utils.random(World.MAX_Y)
                 treasureY = utils.random(World.MAX_X)
-                treasureZ = utils.random(World.MAX_X)
                 treasureCell = this.fields[treasureZ][treasureY][treasureX]
-                if (treasureZ != World.MIN_Z && treasureCell.field != Field.DOWNSTAIRS && treasureCell.field != Field.UPSTAIRS) {
+                if (treasureCell.field != Field.DOWNSTAIRS && treasureCell.field != Field.UPSTAIRS) {
                     break
                 }
             }
