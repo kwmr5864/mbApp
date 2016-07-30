@@ -196,29 +196,114 @@ module core {
             return new core.Position(utils.random(World.MAX_X), utils.random(World.MAX_Y), z)
         }
 
+        public getUpstairsPosition(position: core.Position): core.Position {
+            var targetPosition: core.Position = null
+            let fields = this.fields[position.z]
+            for (var j = World.MIN_Y; j <= World.MAX_Y; j++) {
+                for (var i = World.MIN_X; i <= World.MAX_X; i++) {
+                    if (fields[j][i].field == Field.UPSTAIRS) {
+                        targetPosition = new core.Position(i, j, position.z)
+                        break
+                    }
+                }
+            }
+
+            return targetPosition
+        }
+
+        public getDownstairsPosition(position: core.Position): core.Position {
+            var targetPosition: core.Position = null
+            let fields = this.fields[position.z]
+            for (var j = World.MIN_Y; j <= World.MAX_Y; j++) {
+                for (var i = World.MIN_X; i <= World.MAX_X; i++) {
+                    if (fields[j][i].field == Field.DOWNSTAIRS) {
+                        targetPosition = new core.Position(i, j, position.z)
+                        break
+                    }
+                }
+            }
+
+            return targetPosition
+        }
+
         private setFields() {
             this.fields = new Array(World.MAX_Z + 1)
-            for (var k = 0; k <= World.MAX_Z; k++) {
+            for (var level = World.MIN_Z; level <= World.MAX_Z; level++) {
                 var rows = new Array(World.MAX_Y + 1)
                 for (var j = 0; j <= World.MAX_Y; j++) {
                     var row = new Array(World.MAX_X + 1)
                     for (var i = 0; i <= World.MAX_X; i++) {
                         row[i] = new Cell(Field.FLAT)
-                        switch (dice()) {
+                        switch (level) {
+                            case 0:
+                                switch (dice()) {
+                                    case 1:
+                                    case 2:
+                                        row[i] = World.getRandomBlock(level)
+                                        break
+                                    case 3:
+                                        row[i].spring = World.getSpring()
+                                        break
+                                }
+                                break
+                            case 1:
+                                switch (dice()) {
+                                    case 1:
+                                    case 2:
+                                        row[i] = World.getRandomBlock(level)
+                                        break
+                                    case 3:
+                                        row[i].spring = World.getSpring()
+                                        break
+
+                                }
+                                break
+                            case 2:
+                                switch (dice()) {
+                                    case 1:
+                                    case 2:
+                                        row[i] = World.getRandomBlock(level)
+                                        break
+                                    case 3:
+                                        row[i].spring = World.getSpring()
+                                        break
+                                    case 6:
+                                        row[i].treasure = World.getTreasureBox()
+                                        break
+
+                                }
+                                break
+                            case 3:
+                                switch (dice()) {
+                                    case 1:
+                                    case 2:
+                                        row[i] = World.getRandomBlock(level)
+                                        break
+                                    case 3:
+                                        row[i].spring = World.getSpring()
+                                        break
+                                    case 6:
+                                        row[i].treasure = World.getTreasureBox()
+                                        break
+                                }
+                                break
                             case 4:
-                                row[i].treasure = World.getTreasureBox()
-                                break
-                            case 5:
-                                row[i].spring = World.getSpring()
-                                break
-                            case 6:
-                                row[i] = World.getBlock()
+                                switch (dice()) {
+                                    case 1:
+                                    case 2:
+                                        row[i] = World.getRandomBlock(level)
+                                        break
+                                    case 5:
+                                    case 6:
+                                        row[i].treasure = World.getTreasureBox()
+                                        break
+                                }
                                 break
                         }
                     }
                     rows[j] = row
                 }
-                this.fields[k] = rows
+                this.fields[level] = rows
             }
         }
 
@@ -249,25 +334,78 @@ module core {
             return new Spring(springType)
         }
 
-        private static getBlock(): Cell {
-            var cell = new Cell(Field.FLAT)
-            cell.field = Field.BLOCK
-            switch (dice()) {
+        private static getRandomBlock(level: number): Cell {
+            var cell = new Cell(Field.BLOCK)
+            var tussock = cell.block = new entities.Tussock()
+            var tree = cell.block = new entities.Tree()
+            var rock = cell.block = new entities.Rock()
+            var box = cell.block = new entities.WoodenBox()
+            var wall = cell.block = new entities.Wall()
+
+            switch (level) {
+                case 0:
+                    switch (dice()) {
+                        case 1:
+                        case 2:
+                            cell.block = tree
+                            break
+                        default:
+                            cell.block = tussock
+                            break
+                    }
+                    break
                 case 1:
-                    cell.field = Field.WALL
-                    cell.block = new entities.Wall()
+                    switch (dice()) {
+                        case 1:
+                        case 2:
+                            cell.block = rock
+                            break
+                        default:
+                            cell.block = box
+                            break
+                    }
                     break
                 case 2:
-                    cell.block = new entities.Rock()
+                    switch (dice()) {
+                        case 1:
+                        case 2:
+                        case 3:
+                            cell.block = box
+                            break
+                        default:
+                            cell.block = rock
+                            break
+                    }
                     break
                 case 3:
-                    cell.block = new entities.Tree()
+                    switch (dice()) {
+                        case 1:
+                        case 2:
+                            cell.block = box
+                            break
+                        case 3:
+                            cell.field = Field.WALL
+                            cell.block = wall
+                            break
+                        default:
+                            cell.block = rock
+                            break
+                    }
                     break
                 case 4:
-                    cell.block = new entities.Tussock()
-                    break
-                default:
-                    cell.block = new entities.WoodenBox()
+                    switch (dice()) {
+                        case 1:
+                        case 2:
+                            cell.block = rock
+                            break
+                        case 3:
+                            cell.block = box
+                            break
+                        default:
+                            cell.block = wall
+                            cell.field = Field.WALL
+                            break
+                    }
                     break
             }
 
@@ -275,7 +413,7 @@ module core {
         }
 
         private setObjects() {
-            // 登り階段の設置
+            // 最上階以外に登り階段を設置
             for (var z = World.MIN_Z; z < World.MAX_Z; z++) {
                 let upX = utils.random(World.MAX_X)
                 let upY = utils.random(World.MAX_Y)
@@ -285,7 +423,7 @@ module core {
                 upCell.block = null
             }
 
-            // 降り階段の設置
+            // 地上を含む全ての階層に降り階段を設置
             for (var z = World.MIN_Z; z <= World.MAX_Z; z++) {
                 var downX: number
                 var downY: number
@@ -294,7 +432,7 @@ module core {
                     downX = utils.random(World.MAX_X)
                     downY = utils.random(World.MAX_Y)
                     downCell = this.fields[z][downY][downX]
-                    if (downCell.field != Field.DOWNSTAIRS) {
+                    if (downCell.field != Field.UPSTAIRS) {
                         break
                     }
                 }
@@ -306,17 +444,16 @@ module core {
                 }
             }
 
-            // 秘宝を設置
+            // 最上階に秘宝を設置
             var treasureX: number
             var treasureY: number
-            var treasureZ: number
+            var treasureZ = World.MAX_X
             var treasureCell: Cell
             while (true) {
                 treasureX = utils.random(World.MAX_Y)
                 treasureY = utils.random(World.MAX_X)
-                treasureZ = utils.random(World.MAX_X)
                 treasureCell = this.fields[treasureZ][treasureY][treasureX]
-                if (treasureZ != World.MIN_Z && treasureCell.field != Field.DOWNSTAIRS && treasureCell.field != Field.UPSTAIRS) {
+                if (treasureCell.field != Field.DOWNSTAIRS && treasureCell.field != Field.UPSTAIRS) {
                     break
                 }
             }

@@ -156,6 +156,7 @@ var appVm = new Vue({
                 case Field.DOWNSTAIRS:
                     if (World.MIN_Z < this.position.z) {
                         this.position.z--
+                        this.position = this.world.getUpstairsPosition(this.position)
                         if (World.MIN_Z < this.position.z) {
                             this.addMessage(`階段を降り塔の ${this.position.z} 階へと進んだ...`, EmphasisColor.INFO)
                         } else {
@@ -178,6 +179,7 @@ var appVm = new Vue({
                     break
                 case Field.UPSTAIRS:
                     this.position.z++
+                    this.position = this.world.getDownstairsPosition(this.position)
                     this.addMessage(`階段を登り塔の ${this.position.z} 階へと進んだ...`, EmphasisColor.INFO)
                     this.afterAction()
                     break
@@ -545,78 +547,106 @@ var appVm = new Vue({
             }
             this.direction.display = this.getDirectionDisplay()
         },
-        randomEvent: function () {
+        getMoney: function () {
+            let money = dice(2)
+            this.addMessage(`${money} 金拾った.`, EmphasisColor.SUCCESS)
+            this.stock.money += money
+        },
+        getKey: function () {
+            this.stock.key++
+            this.addMessage(`鍵を拾った. (${this.stock.key})`, EmphasisColor.SUCCESS)
+        },
+        encounterRats: function () {
+            this.addMessage('ねずみの群れだ!', EmphasisColor.INVERSE)
             switch (dice()) {
                 case 1:
-                    switch (dice()) {
-                        case 1:
-                        case 3:
-                        case 5:
-                            let money = dice(2)
-                            this.addMessage(`${money} 金拾った.`, EmphasisColor.SUCCESS)
-                            this.stock.money += money
-                            break
-                        default:
-                            this.stock.key++
-                            this.addMessage(`鍵を拾った. (${this.stock.key})`, EmphasisColor.SUCCESS)
-                            break
+                    this.addMessage('だが幸い何も奪われずに済んだ.')
+                    break
+                default:
+                    for (var i = 0; i < this.users.length; i++) {
+                        var user = this.users[i]
+                        var amount = dice(2)
+                        user.food.sub(amount)
                     }
+                    this.addMessage('食糧を少し奪われてしまった...')
+                    break
+            }
+        },
+        encounterBats: function () {
+            this.addMessage('コウモリの群れだ!', EmphasisColor.INVERSE)
+            switch (dice()) {
+                case 1:
+                    this.addMessage('だが幸い何も奪われずに済んだ.')
+                    break
+                default:
+                    var amount = dice(2)
+                    this.stock.money -= amount
+                    this.addMessage('お金を少し奪われてしまった...', EmphasisColor.INFO)
+                    break
+            }
+        },
+        invokeRotation: function () {
+            var direction: Direction = null
+            switch (dice()) {
+                case 1:
+                    direction = Direction.NORTH
                     break
                 case 2:
-                    switch (dice()) {
-                        case 1:
-                        case 2:
-                        case 3:
-                            this.addMessage('コウモリの群れだ!', EmphasisColor.INVERSE)
-                            switch (dice()) {
-                                case 1:
-                                    this.addMessage('だが幸い何も奪われずに済んだ.')
-                                    break
-                                default:
-                                    var amount = dice(2)
-                                    this.stock.money -= amount
-                                    this.addMessage('お金を少し奪われてしまった...', EmphasisColor.INFO)
-                                    break
-                            }
-                            break
-                        default:
-                            this.addMessage('ねずみの群れだ!', EmphasisColor.INVERSE)
-                            switch (dice()) {
-                                case 1:
-                                    this.addMessage('だが幸い何も奪われずに済んだ.')
-                                    break
-                                default:
-                                    for (var i = 0; i < this.users.length; i++) {
-                                        var user = this.users[i]
-                                        var amount = dice(2)
-                                        user.food.sub(amount)
-                                    }
-                                    this.addMessage('食糧を少し奪われてしまった...')
-                                    break
-                            }
-                            break
-                    }
+                    direction = Direction.EAST
                     break
                 case 3:
-                    var trap = Trap.random()
-                    if (trap != null) {
-                        this.addMessage(`トラップだ! ${trap.name}!`, EmphasisColor.INVERSE)
-                        switch(trap.type) {
-                            case TrapType.SLING:
-                            case TrapType.CROSSBOW:
-                            case TrapType.CHAINSAW:
-                                var damage = trap.operate()
-                                var userIndex = random(this.users.length) - 1
-                                var user = this.users[userIndex]
-                                user.life.sub(damage)
-                                if (trap.type == TrapType.CHAINSAW) {
-                                    this.addMessage(`${user.name}の体はバラバラにされた!`, EmphasisColor.DANGER)
-                                } else {
-                                    this.addMessage(`${user.name}は ${damage} の被害を受けた.`, EmphasisColor.DANGER)
-                                }
-                                break
-                            case TrapType.GAS:
-                            case TrapType.BOMB:
+                    direction = Direction.SOUTH
+                    break
+                case 4:
+                    direction = Direction.WEST
+            }
+            if (direction != null) {
+                this.direction.value = direction
+                this.addUserMessage(`目が回った... ところでどっちを向いてたっけ.`)
+            } else {
+                this.addMessage('...錆びついていたようだ.')
+            }
+        },
+        invokeWarp: function () {
+            switch (dice()) {
+                case 1:
+                case 2:
+                    var position = World.getRandomPosition(this.position.z)
+                    var target = this.world.getCell(this.position)
+                    if (target.block != null) {
+                        var damage = Math.ceil(target.block.life.current / this.users.length)
+                        for (var i = 0; i < this.users.length; i++) {
+                            var user = this.users[i]
+                            user.life.sub(damage)
+                        }
+                        this.addMessage(`落下して${target.block.name}に直撃した!`, EmphasisColor.DANGER)
+                        this.addMessage(`${target.block.name}は粉々に砕け散った.`)
+                        target.block = null
+                        target.field = Field.FLAT
+                    } else {
+                        this.addUserMessage('...ここはどこだ?')
+                    }
+                    this.position = position
+                    break
+                default:
+                    this.addUserMessage('...どうやら壊れてたみたいだな.')
+                    break
+            }
+        },
+        invokeTrap: function () {
+            var trap = Trap.random(this.position.z)
+            if (trap != null) {
+                this.addMessage(`トラップだ! ${trap.name}!`, EmphasisColor.INVERSE)
+                switch (trap.type) {
+                    case TrapType.ROTATION:
+                        this.invokeRotation()
+                        break
+                    case TrapType.WARP:
+                        this.invokeWarp()
+                        break
+                    default:
+                        switch (trap.range) {
+                            case TargetRange.ALL:
                                 for (var i = 0; i < this.users.length; i++) {
                                     var user = this.users[i]
                                     var damage = trap.operate()
@@ -624,57 +654,78 @@ var appVm = new Vue({
                                     this.addMessage(`${user.name}は ${damage} の被害を受けた.`, EmphasisColor.DANGER)
                                 }
                                 break
-                            case TrapType.ROTATION:
-                                var direction: Direction = null
-                                switch (dice()) {
-                                    case 1:
-                                        direction = Direction.NORTH
-                                        break
-                                    case 2:
-                                        direction = Direction.EAST
-                                        break
-                                    case 3:
-                                        direction = Direction.SOUTH
-                                        break
-                                    case 4:
-                                        direction = Direction.WEST
-                                }
-                                if (direction != null) {
-                                    this.direction.value = direction
-                                    this.addUserMessage(`目が回った... ところでどっちを向いてたっけ.`)
+                            default:
+                                var damage = trap.operate()
+                                var userIndex = random(this.users.length) - 1
+                                var user = this.users[userIndex]
+                                user.life.sub(damage)
+                                if (user.life.max < damage) {
+                                    this.addMessage(`${user.name}の体はバラバラにされた!`, EmphasisColor.DANGER)
                                 } else {
-                                    this.addMessage('...錆びついていたようだ.')
-                                }
-                                break
-                            case TrapType.WARP:
-                                switch (dice()) {
-                                    case 1:
-                                    case 2:
-                                        var position = World.getRandomPosition(this.position.z)
-                                        var target = this.world.getCell(this.position)
-                                        if (target.block != null) {
-                                            var damage = Math.ceil(target.block.life.current / this.users.length)
-                                            for (var i = 0; i < this.users.length; i++) {
-                                                var user = this.users[i]
-                                                user.life.sub(damage)
-                                            }
-                                            this.addMessage(`落下して${target.block.name}に直撃した!`, EmphasisColor.DANGER)
-                                            this.addMessage(`${target.block.name}は粉々に砕け散った.`)
-                                            target.block = null
-                                            target.field = Field.FLAT
-                                        } else {
-                                            this.addUserMessage('...ここはどこだ?')
-                                        }
-                                        this.position = position
-                                        break
-                                    default:
-                                        this.addUserMessage('...どうやら壊れてたみたいだな.')
-                                        break
+                                    this.addMessage(`${user.name}は ${damage} の被害を受けた.`, EmphasisColor.DANGER)
                                 }
                                 break
                         }
-                    } else {
-                        this.addMessage('トラップだ! ...どうやら作動しなかったようだ.')
+                        break
+                }
+            } else {
+                this.addMessage('トラップだ! ...どうやら作動しなかったようだ.')
+            }
+        },
+        randomEvent: function () {
+            let result = dice()
+            switch (this.position.z) {
+                case 0:
+                    switch (result) {
+                        case 1:
+                            this.getMoney()
+                            break
+                    }
+                    break
+                case 1:
+                    switch (result) {
+                        case 2:
+                            this.getKey()
+                            break
+                        case 3:
+                            this.encounterRats()
+                            break
+                        case 6:
+                            this.invokeTrap()
+                            break
+                    }
+                    break
+                case 2:
+                    switch (result) {
+                        case 2:
+                            this.getKey()
+                            break
+                        case 3:
+                            this.encounterRats()
+                            break
+                        case 4:
+                            this.encounterBats()
+                            break
+                        case 6:
+                            this.invokeTrap()
+                            break
+                    }
+                    break
+                case 3:
+                    switch (result) {
+                        case 4:
+                            this.encounterBats()
+                            break
+                        case 6:
+                            this.invokeTrap()
+                            break
+                    }
+                    break
+                case 4:
+                    switch (result) {
+                        case 6:
+                            this.invokeTrap()
+                            break
                     }
                     break
             }
