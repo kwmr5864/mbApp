@@ -33,6 +33,9 @@ module core {
         public static MIN_X = 0
 
         public fields: Cell[][]
+        public goalPosition: core.Position
+        public treasurePosition: core.Position
+        public compassPosition: core.Position
 
         constructor(public name: string = '') {
             if (name == '') {
@@ -264,6 +267,7 @@ module core {
             // 出口の設置
             let goalY = utils.random(World.MAX_Y)
             let goalX = utils.random(World.MAX_X)
+            this.goalPosition = new Position(goalX, goalY)
             var goalCell = this.fields[goalY][goalX]
             goalCell.field = Field.GOAL
             goalCell.treasure = null
@@ -275,6 +279,7 @@ module core {
                 treasureY = utils.random(World.MAX_Y)
                 treasureX = utils.random(World.MAX_X)
                 if (treasureY != goalY && treasureX != goalX) {
+                    this.treasurePosition = new Position(treasureX, treasureY)
                     var targetCell = this.fields[treasureY][treasureX]
                     targetCell.field = Field.FLAT
                     var item = new Item(`秘宝「${faker.commerce.productName()}」`, ItemType.TREASURE)
@@ -291,9 +296,12 @@ module core {
                 compassY = utils.random(World.MAX_Y)
                 compassX = utils.random(World.MAX_X)
                 if (compassY != goalY && compassY != treasureY && compassX != goalX && compassX != treasureX) {
+                    this.compassPosition = new Position(compassX, compassY)
                     var targetCell = this.fields[compassY][compassX]
                     targetCell.field = Field.FLAT
                     var item = new Item(`コンパス`, ItemType.COMPASS)
+                    item.life.expand(400)
+                    item.life.add(400)
                     let lock = dice()
                     targetCell.treasure = new TreasureBox(item, lock)
                     targetCell.block = null

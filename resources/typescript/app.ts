@@ -56,7 +56,8 @@ var appVm = new Vue({
             treasure: false,
         },
         stock: {
-            key: 30,
+            money: 400,
+            key: 20,
             compass: 0,
         },
     },
@@ -73,13 +74,17 @@ var appVm = new Vue({
                     break
                 }
             }
+            let basePrice = 100
             if (added) {
-                this.addMessage(`${name}は追加済みです!`)
+                this.addMessage(`${name}はチームに加入済みです!`)
+            } else if (this.stock.money < basePrice) {
+                this.addMessage(`メンバを加えるには ${basePrice} 金の依頼料を支払う必要がある.`)
             } else {
                 var user = new User(name)
                 Users.add(user)
                 this.users = Users.find()
-                this.addMessage(`${name}を追加しました!`, EmphasisColor.SUCCESS)
+                this.addMessage(`依頼料を ${basePrice} 金支払って${name}をチームに加えた!`, EmphasisColor.SUCCESS)
+                this.stock.money -= basePrice
             }
             this.txt = ''
         },
@@ -87,16 +92,22 @@ var appVm = new Vue({
             for (var i = 0; i < this.users.length; i++) {
                 var user: User = this.users[i];
                 if (userName === user.name) {
-                    Users.delete(userName)
-                    this.users = Users.find()
-                    this.addMessage(`${userName}を除名しました!`)
+                    let basePrice = 50
+                    if (this.stock.money < basePrice) {
+                        this.addMessage(`メンバを除名するには ${basePrice} 金の慰謝料を支払う必要がある.`)
+                    } else {
+                        Users.delete(userName)
+                        this.users = Users.find()
+                        this.addMessage(`慰謝料を ${basePrice} 金支払って${userName}を除名した.`)
+                        this.stock.money -= basePrice
+                    }
                 }
             }
         },
         dissolution: function () {
             models.Users.clear()
             this.users = models.Users.find()
-            this.addMessage('チームを解散した')
+            this.addMessage('チームを解散した...')
         },
         rest: function () {
             this.addMessage('休憩中...')
@@ -152,8 +163,26 @@ var appVm = new Vue({
                     if (item != null) {
                         this.addMessage(`${item.name}が入っていた.`, EmphasisColor.SUCCESS)
                         switch (item.itemType) {
-                            case ItemType.KEY:
-                                this.stock.key++
+                            case ItemType.OINTMENT:
+                                for (var i = 0; i < this.users.length; i++) {
+                                    var user = this.users[i]
+                                    user.life.add(50)
+                                }
+                                this.addMessage('君たちは傷と疲れを癒した.', EmphasisColor.SUCCESS)
+                                break
+                            case ItemType.MEAT:
+                                for (var i = 0; i < this.users.length; i++) {
+                                    var user = this.users[i]
+                                    user.food.add(100)
+                                }
+                                this.addMessage('君たちは空腹を満たした.', EmphasisColor.SUCCESS)
+                                break
+                            case ItemType.PAPER:
+                                if (item.description != null && item.description != '') {
+                                    this.addMessage(item.description, EmphasisColor.INVERSE)
+                                } else {
+                                    this.addMessage('何か書いてあるがそれを読むことはできなかった...')
+                                }
                                 break
                             case ItemType.TREASURE:
                                 this.has.treasure = true
@@ -291,8 +320,24 @@ var appVm = new Vue({
                             switch (dice()) {
                                 case 1:
                                 case 2:
+                                case 3:
                                     this.addMessage('目の前に何かが落ちた.', EmphasisColor.SUCCESS)
                                     var item = Item.getRandom()
+                                    if (item != null && item.itemType == ItemType.PAPER) {
+                                        var memo = ''
+                                        switch (dice()) {
+                                            case 1:
+                                                memo = `この迷宮の出口は ${this.world.goalPosition.toString()} の位置にある.`
+                                                break
+                                            case 2:
+                                                memo = `秘宝は ${this.world.goalPosition.toString()} の位置に隠されている.`
+                                                break
+                                            case 3:
+                                                memo = `コンパスは ${this.world.goalPosition.toString()} の位置に隠されている.`
+                                                break
+                                        }
+                                        item.description = memo
+                                    }
                                     let lock = dice() - 1
                                     target.treasure = new TreasureBox(item, lock)
                                     break
@@ -480,27 +525,52 @@ var appVm = new Vue({
         randomEvent: function () {
             switch (dice()) {
                 case 1:
-                    this.addUserMessage('食い物が落ちてるぜ!')
-                    this.addMessage('保存のきかなさそうな果実で一行はわずかに腹を満たした.', EmphasisColor.SUCCESS)
-                    for (var i = 0; i < this.users.length; i++) {
-                        var user = this.users[i]
-                        var food = dice(2)
-                        user.food.add(food)
+                    switch (dice()) {
+                        case 1:
+                        case 3:
+                        case 5:
+                            let money = dice(2)
+                            this.addMessage(`${money} 金拾った.`, EmphasisColor.SUCCESS)
+                            this.stock.money += money
+                            break
+                        default:
+                            this.stock.key++
+                            this.addMessage(`鍵を拾った. (${this.stock.key})`, EmphasisColor.SUCCESS)
+                            break
                     }
                     break
                 case 2:
-                    this.addMessage('コウモリの群れだ!', EmphasisColor.INVERSE)
                     switch (dice()) {
                         case 1:
-                            this.addMessage('だが幸い食糧を奪われずに済んだ.')
+                        case 2:
+                        case 3:
+                            this.addMessage('コウモリの群れだ!', EmphasisColor.INVERSE)
+                            switch (dice()) {
+                                case 1:
+                                    this.addMessage('だが幸い何も奪われずに済んだ.')
+                                    break
+                                default:
+                                    var amount = dice(2)
+                                    this.stock.money -= amount
+                                    this.addMessage('お金を少し奪われてしまった...', EmphasisColor.INFO)
+                                    break
+                            }
                             break
                         default:
-                            for (var i = 0; i < this.users.length; i++) {
-                                var user = this.users[i]
-                                var food = dice(2)
-                                user.food.sub(food)
+                            this.addMessage('ねずみの群れだ!', EmphasisColor.INVERSE)
+                            switch (dice()) {
+                                case 1:
+                                    this.addMessage('だが幸い何も奪われずに済んだ.')
+                                    break
+                                default:
+                                    for (var i = 0; i < this.users.length; i++) {
+                                        var user = this.users[i]
+                                        var amount = dice(2)
+                                        user.food.sub(amount)
+                                    }
+                                    this.addMessage('食糧を少し奪われてしまった...')
+                                    break
                             }
-                            this.addMessage('食糧を少し奪われてしまった...')
                             break
                     }
                     break
@@ -583,10 +653,6 @@ var appVm = new Vue({
                     } else {
                         this.addMessage('トラップだ! ...どうやら作動しなかったようだ.')
                     }
-                    break
-                case 4:
-                    this.stock.key++
-                    this.addMessage(`鍵を拾った. (${this.stock.key})`)
                     break
             }
         },

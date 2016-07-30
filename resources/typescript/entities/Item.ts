@@ -6,6 +6,7 @@ module entities {
     import ItemType = enums.ItemType
     import dice = utils.dice
     export class Item extends LifeObject {
+        public description: string
         constructor(public name: string, public itemType: ItemType) {
             super(name, 1)
         }
@@ -14,7 +15,7 @@ module entities {
             switch (dice()) {
                 case 1:
                 case 2:
-                    item = new Item('軟膏', ItemType.OINTMENT)
+                    item = new Item('塗り薬', ItemType.OINTMENT)
                     break
                 case 3:
                 case 4:

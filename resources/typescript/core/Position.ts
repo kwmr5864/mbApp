@@ -88,5 +88,8 @@ module core {
             }
             return position
         }
+        toString(): string {
+            return `(${this.x},${this.y})`
+        }
     }
 }
