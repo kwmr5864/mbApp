@@ -529,6 +529,32 @@ var core;
             if (z === void 0) { z = World.MIN_Z; }
             return new core.Position(utils.random(World.MAX_X), utils.random(World.MAX_Y), z);
         };
+        World.prototype.getUpstairsPosition = function (position) {
+            var targetPosition = null;
+            var fields = this.fields[position.z];
+            for (var j = World.MIN_Y; j <= World.MAX_Y; j++) {
+                for (var i = World.MIN_X; i <= World.MAX_X; i++) {
+                    if (fields[j][i].field == Field.UPSTAIRS) {
+                        targetPosition = new core.Position(i, j, position.z);
+                        break;
+                    }
+                }
+            }
+            return targetPosition;
+        };
+        World.prototype.getDownstairsPosition = function (position) {
+            var targetPosition = null;
+            var fields = this.fields[position.z];
+            for (var j = World.MIN_Y; j <= World.MAX_Y; j++) {
+                for (var i = World.MIN_X; i <= World.MAX_X; i++) {
+                    if (fields[j][i].field == Field.DOWNSTAIRS) {
+                        targetPosition = new core.Position(i, j, position.z);
+                        break;
+                    }
+                }
+            }
+            return targetPosition;
+        };
         World.prototype.setFields = function () {
             this.fields = new Array(World.MAX_Z + 1);
             for (var k = 0; k <= World.MAX_Z; k++) {
@@ -617,7 +643,7 @@ var core;
                     downX = utils.random(World.MAX_X);
                     downY = utils.random(World.MAX_Y);
                     downCell = this.fields[z][downY][downX];
-                    if (downCell.field != Field.DOWNSTAIRS) {
+                    if (downCell.field != Field.UPSTAIRS) {
                         break;
                     }
                 }
@@ -979,6 +1005,7 @@ var appVm = new Vue({
                 case Field.DOWNSTAIRS:
                     if (World.MIN_Z < this.position.z) {
                         this.position.z--;
+                        this.position = this.world.getUpstairsPosition(this.position);
                         if (World.MIN_Z < this.position.z) {
                             this.addMessage("\u968E\u6BB5\u3092\u964D\u308A\u5854\u306E " + this.position.z + " \u968E\u3078\u3068\u9032\u3093\u3060...", EmphasisColor.INFO);
                         }
@@ -1004,6 +1031,7 @@ var appVm = new Vue({
                     break;
                 case Field.UPSTAIRS:
                     this.position.z++;
+                    this.position = this.world.getDownstairsPosition(this.position);
                     this.addMessage("\u968E\u6BB5\u3092\u767B\u308A\u5854\u306E " + this.position.z + " \u968E\u3078\u3068\u9032\u3093\u3060...", EmphasisColor.INFO);
                     this.afterAction();
                     break;

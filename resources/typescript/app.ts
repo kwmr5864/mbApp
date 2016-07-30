@@ -156,6 +156,7 @@ var appVm = new Vue({
                 case Field.DOWNSTAIRS:
                     if (World.MIN_Z < this.position.z) {
                         this.position.z--
+                        this.position = this.world.getUpstairsPosition(this.position)
                         if (World.MIN_Z < this.position.z) {
                             this.addMessage(`階段を降り塔の ${this.position.z} 階へと進んだ...`, EmphasisColor.INFO)
                         } else {
@@ -178,6 +179,7 @@ var appVm = new Vue({
                     break
                 case Field.UPSTAIRS:
                     this.position.z++
+                    this.position = this.world.getDownstairsPosition(this.position)
                     this.addMessage(`階段を登り塔の ${this.position.z} 階へと進んだ...`, EmphasisColor.INFO)
                     this.afterAction()
                     break

@@ -196,6 +196,36 @@ module core {
             return new core.Position(utils.random(World.MAX_X), utils.random(World.MAX_Y), z)
         }
 
+        public getUpstairsPosition(position: core.Position): core.Position {
+            var targetPosition: core.Position = null
+            let fields = this.fields[position.z]
+            for (var j = World.MIN_Y; j <= World.MAX_Y; j++) {
+                for (var i = World.MIN_X; i <= World.MAX_X; i++) {
+                    if (fields[j][i].field == Field.UPSTAIRS) {
+                        targetPosition = new core.Position(i, j, position.z)
+                        break
+                    }
+                }
+            }
+
+            return targetPosition
+        }
+
+        public getDownstairsPosition(position: core.Position): core.Position {
+            var targetPosition: core.Position = null
+            let fields = this.fields[position.z]
+            for (var j = World.MIN_Y; j <= World.MAX_Y; j++) {
+                for (var i = World.MIN_X; i <= World.MAX_X; i++) {
+                    if (fields[j][i].field == Field.DOWNSTAIRS) {
+                        targetPosition = new core.Position(i, j, position.z)
+                        break
+                    }
+                }
+            }
+
+            return targetPosition
+        }
+
         private setFields() {
             this.fields = new Array(World.MAX_Z + 1)
             for (var k = 0; k <= World.MAX_Z; k++) {
@@ -294,7 +324,7 @@ module core {
                     downX = utils.random(World.MAX_X)
                     downY = utils.random(World.MAX_Y)
                     downCell = this.fields[z][downY][downX]
-                    if (downCell.field != Field.DOWNSTAIRS) {
+                    if (downCell.field != Field.UPSTAIRS) {
                         break
                     }
                 }
