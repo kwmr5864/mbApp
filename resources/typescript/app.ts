@@ -125,7 +125,7 @@ var appVm = new Vue({
             this.after()
         },
         search: function () {
-            var target = this.world.fields[this.position.z][this.position.y][this.position.x]
+            var target = this.world.getCell(this.position)
             switch (target.field) {
                 case Field.GOAL:
                     if (this.has.treasure) {
@@ -153,7 +153,7 @@ var appVm = new Vue({
             this.after()
         },
         take: function () {
-            var target = this.world.fields[this.position.z][this.position.y][this.position.x]
+            var target = this.world.getCell(this.position)
             if (target.treasure != null) {
                 if (0 < target.treasure.lock) {
                     this.addMessage('鍵がかかっているようだ.')
@@ -257,7 +257,7 @@ var appVm = new Vue({
             this.after()
         },
         useKey: function () {
-            var target = this.world.fields[this.position.z][this.position.y][this.position.x]
+            var target = this.world.getCell(this.position)
             if (this.stock.key < 1) {
                 this.addMessage('鍵を持っていない.')
             } else if (target.treasure == null) {
@@ -628,7 +628,7 @@ var appVm = new Vue({
                                     case 1:
                                     case 2:
                                         var position = World.getRandomPosition(this.position.z)
-                                        var target = this.world.fields[position.z][position.y][position.x]
+                                        var target = this.world.getCell(this.position)
                                         if (target.block != null) {
                                             var damage = Math.ceil(target.block.life.current / this.users.length)
                                             for (var i = 0; i < this.users.length; i++) {

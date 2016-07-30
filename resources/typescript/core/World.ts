@@ -51,6 +51,12 @@ module core {
             this.setGoal()
         }
 
+        public getCell(position: core.Position): Cell {
+            var targetPosition = this.fields[position.z][position.y][position.x]
+
+            return targetPosition
+        }
+
         public getForwardCell(position: core.Position, direction: Direction): Cell {
             var targetPosition = this.getForwardPosition(position, direction)
 
